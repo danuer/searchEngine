@@ -4,7 +4,6 @@ import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
-import org.springframework.beans.factory.annotation.Autowired;
 import searchengine.model.PageRepository;
 import searchengine.model.SiteRepository;
 
@@ -16,25 +15,25 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Parser extends RecursiveTask<Set<String>> {
-
     private SiteRepository siteRepository;
     private PageRepository pageRepository;
-
     private ConcurrentSkipListSet<String> linkList;
     private Set<String> childLinkList;
     private final String url;
     private final String rootUrl;
-    public Parser(String url) {
+    public Parser(String url, SiteRepository siteRepository, PageRepository pageRepository) {
         this.url = url;
+        this.siteRepository = siteRepository;
+        this.pageRepository = pageRepository;
         this.rootUrl = url.split("/.")[1];
         this.linkList = new ConcurrentSkipListSet<>();
         this.linkList.add(url);
     }
 
-    public Parser(SiteRepository siteRepository, PageRepository pageRepository, String url, ConcurrentSkipListSet<String> list) throws IOException, InterruptedException {
+    public Parser(String url, SiteRepository siteRepository, PageRepository pageRepository, ConcurrentSkipListSet<String> list) throws IOException, InterruptedException {
+        this.url = url;
         this.siteRepository = siteRepository;
         this.pageRepository = pageRepository;
-        this.url = url;
         this.rootUrl = url.split("/.")[1];
         this.linkList = list;
     }
@@ -51,7 +50,7 @@ public class Parser extends RecursiveTask<Set<String>> {
             System.out.println("найдено " + childLinkList.size());
             childLinkList.forEach(link -> {
                 try {
-                    Parser task = new Parser(siteRepository, pageRepository, link, linkList);
+                    Parser task = new Parser(link, siteRepository, pageRepository, linkList);
                     task.fork();
                     taskList.add(task);
                 } catch (InterruptedException | IOException e) {
@@ -73,17 +72,19 @@ public class Parser extends RecursiveTask<Set<String>> {
                 .userAgent("Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) " +
                         "Gecko/20070725 Firefox/2.0.0.6")
                 .referrer("http://www.google.com")
-                .timeout(10000)
+                .timeout(30000)
                 .followRedirects(false);
     }
 
     private void parseLinks(String url) {
         try {
-            Thread.sleep(150);
+            Thread.sleep(500);
             Document doc = connect(url).get();
+
             Elements links = doc.select("a");
             links.forEach(element -> {
                 String link = element.attr("abs:href");
+                System.out.println(link);
                 if (isTrueLink(link)) {
                     linkList.add(link);
                     childLinkList.add(link);

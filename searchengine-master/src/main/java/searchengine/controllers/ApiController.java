@@ -9,9 +9,9 @@ import searchengine.dto.response.SearchResponse;
 import searchengine.dto.response.SiteData;
 import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.services.IndexingService;
-import searchengine.services.IndexingServiceImpl;
 import searchengine.services.StatisticsService;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
 @RestController
@@ -19,9 +19,11 @@ import java.util.ArrayList;
 public class ApiController {
 
     private final StatisticsService statisticsService;
+    private final IndexingService indexingService;
 
-    public ApiController(StatisticsService statisticsService) {
+    public ApiController(StatisticsService statisticsService, IndexingService indexingService) {
         this.statisticsService = statisticsService;
+        this.indexingService = indexingService;
     }
 
     @GetMapping("/statistics")
@@ -30,9 +32,9 @@ public class ApiController {
     }
 
     @GetMapping("/startIndexing")
-    public ResponseEntity<GetResponse> startIndexing() {
+    public ResponseEntity<GetResponse> startIndexing() throws IOException, InterruptedException {
 
-        return ;
+        return indexingService.startIndexing();
     }
 
     @GetMapping("/stopIndexing")
