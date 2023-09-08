@@ -8,6 +8,8 @@ import searchengine.dto.response.PostResponse;
 import searchengine.dto.response.SearchResponse;
 import searchengine.dto.response.SiteData;
 import searchengine.dto.statistics.StatisticsResponse;
+import searchengine.services.IndexingService;
+import searchengine.services.IndexingServiceImpl;
 import searchengine.services.StatisticsService;
 
 import java.util.ArrayList;
@@ -29,10 +31,8 @@ public class ApiController {
 
     @GetMapping("/startIndexing")
     public ResponseEntity<GetResponse> startIndexing() {
-        GetResponse response = new GetResponse();
-        response.setResult(true);
-        response.setError("");
-        return new ResponseEntity<>(response, HttpStatus.OK);
+
+        return ;
     }
 
     @GetMapping("/stopIndexing")
