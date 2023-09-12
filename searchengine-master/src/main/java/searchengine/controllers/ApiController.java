@@ -39,10 +39,7 @@ public class ApiController {
 
     @GetMapping("/stopIndexing")
     public ResponseEntity<GetResponse> stopIndexing() {
-        GetResponse response = new GetResponse();
-        response.setResult(true);
-        response.setError("");
-        return new ResponseEntity<>(response, HttpStatus.OK);
+        return indexingService.stopIndexing();
     }
 
     @PostMapping("/{indexPage}")
