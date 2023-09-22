@@ -53,17 +53,17 @@ public class IndexingServiceImpl implements IndexingService {
                 searchengine.model.Site modelSite = new searchengine.model.Site();
                 saveNewSite(name, url, modelSite);
                 Parser parser = new Parser(url, siteRepository, pageRepository);
-                parser.fork();
+//                parser.fork();
                 parserList.add(parser);
-                try {
-                    fjp.execute(parser);
-                } catch (RuntimeException e) {
-                    e.printStackTrace();
-                    writeErrToRepo(modelSite);
-                }
+//                try {
+//                    fjp.execute(parser);
+//                } catch (RuntimeException e) {
+//                    e.printStackTrace();
+//                    writeErrToRepo(modelSite);
+//                }
             }
         }
-        StatusSaver ss = new StatusSaver(parserList, siteRepository);
+        StatusSaver ss = new StatusSaver(fjp, parserList, siteRepository);
         ss.start();
         response.setResult(true);
         response.setError("");

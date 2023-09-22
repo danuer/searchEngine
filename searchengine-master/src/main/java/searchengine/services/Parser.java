@@ -53,7 +53,7 @@ public class Parser extends RecursiveTask<Set<String>> {
         List<Parser> taskList = new ArrayList<>();
         parseLinks(url);
         if (!childLinkList.isEmpty() && !isInterrupted) {
-            System.out.println("найдено " + childLinkList.size());
+//            System.out.println("найдено " + childLinkList.size());
             childLinkList.forEach(link -> {
                 try {
                     Parser task = new Parser(link, siteRepository, pageRepository, linkList, rootUrl);
