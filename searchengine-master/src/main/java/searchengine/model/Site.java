@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.Date;
 
 @Entity(name = "site")
 @Getter
@@ -14,13 +15,12 @@ public class Site {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
-    @Enumerated(EnumType.ORDINAL)
-    @Column(columnDefinition = "ENUM('INDEXING','INDEXED','FAILED')",
-            nullable = false)
+    @Enumerated(EnumType.STRING)
+    @Column(columnDefinition = "ENUM('INDEXING','INDEXED','FAILED')", nullable = false)
     private StatusList status;
 
     @Column(name = "status_time", nullable = false)
-    private LocalDateTime statusTime;
+    private long statusTime;
 
     @Column(name = "last_error", columnDefinition = "TEXT")
     private String lastError;

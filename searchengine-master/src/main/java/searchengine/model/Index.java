@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 
-@Entity(name = "index_table")
+@Entity(name = "`index`")
 @Getter
 @Setter
 @RequiredArgsConstructor
@@ -22,6 +22,6 @@ public class Index {
     @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Lemma lemma;
 
-    @Column(columnDefinition = "FLOAT", nullable = false)
-    private float ranking;
+    @Column(name = "`rank`",columnDefinition = "FLOAT", nullable = false)
+    private float rank;
 }

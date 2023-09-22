@@ -1,20 +1,25 @@
 package searchengine.services;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
+import searchengine.model.Page;
 import searchengine.model.PageRepository;
 import searchengine.model.SiteRepository;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.RecursiveTask;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
+
+import static searchengine.services.IndexingServiceImpl.isInterrupted;
+
+@Getter
+@Setter
 public class Parser extends RecursiveTask<Set<String>> {
     private SiteRepository siteRepository;
     private PageRepository pageRepository;
@@ -22,17 +27,19 @@ public class Parser extends RecursiveTask<Set<String>> {
     private Set<String> childLinkList;
     private final String url;
     private final String rootUrl;
+
     public Parser(String url, SiteRepository siteRepository, PageRepository pageRepository) {
         this.url = url;
         this.siteRepository = siteRepository;
         this.pageRepository = pageRepository;
-        this.rootUrl = url.split("//")[1].split("\\.")[0];
+        this.rootUrl = url;
         this.linkList = new ConcurrentSkipListSet<>();
         this.linkList.add(url);
     }
 
     public Parser(String url, SiteRepository siteRepository, PageRepository pageRepository,
-                  ConcurrentSkipListSet<String> list, String rootUrl) throws IOException, InterruptedException {
+                  ConcurrentSkipListSet<String> list, String rootUrl)
+            throws IOException, InterruptedException {
         this.url = url;
         this.siteRepository = siteRepository;
         this.pageRepository = pageRepository;
@@ -42,13 +49,10 @@ public class Parser extends RecursiveTask<Set<String>> {
 
     @Override
     protected Set<String> compute() {
-
         childLinkList = new HashSet<>();
         List<Parser> taskList = new ArrayList<>();
-
         parseLinks(url);
-
-        if (!childLinkList.isEmpty() && !IndexingServiceImpl.isInterrupted) {
+        if (!childLinkList.isEmpty() && !isInterrupted) {
             System.out.println("найдено " + childLinkList.size());
             childLinkList.forEach(link -> {
                 try {
@@ -63,7 +67,7 @@ public class Parser extends RecursiveTask<Set<String>> {
                 linkList.addAll(task.join());
             }
         }
-        System.out.println("linkList size - " + linkList.size());
+//        System.out.println("linkList size - " + linkList.size());
         return linkList;
     }
 
@@ -80,14 +84,15 @@ public class Parser extends RecursiveTask<Set<String>> {
 
     private void parseLinks(String url) {
         try {
-            Thread.sleep(1500);
+            Thread.sleep(500);
             Document doc = connect(url).get();
+            savePage(doc, url, rootUrl);
 
             Elements links = doc.select("a");
             links.forEach(element -> {
                 String link = element.attr("abs:href");
                 if (isTrueLink(link)) {
-                    System.out.println(link);
+//                    System.out.println(link);
                     linkList.add(link);
                     childLinkList.add(link);
                 }
@@ -105,20 +110,30 @@ public class Parser extends RecursiveTask<Set<String>> {
 //        Pattern pattern = Pattern.compile(regexUrl);
 //        Matcher matcher = pattern.matcher(link);
 //        while (matcher.find()) {
-            if (!linkList.contains(link) &&
-                    link.startsWith(url) &&
-                    !link.contains("extlink") &&
-                    !link.equals(url) &&
-                    !link.contains(".pdf") &&
-                    !link.contains("#") &&
-                    !link.contains(".doc") &&
-                    !link.contains(".jpg") &&
-                    !link.contains(".png") &&
-                    !link.contains(".svg") &&
-                    !link.contains("?")) {
-                return true;
-            }
+        if (!linkList.contains(link) &&
+                link.startsWith(url) &&
+                !link.contains("extlink") &&
+                !link.equals(url) &&
+                !link.contains(".pdf") &&
+                !link.contains("#") &&
+                !link.contains(".doc") &&
+                !link.contains(".jpg") &&
+                !link.contains(".png") &&
+                !link.contains(".svg") &&
+                !link.contains("?")) {
+            return true;
+        }
 //        }
         return false;
+    }
+
+    private void savePage (Document doc, String url, String rootUrl) {
+        Page page = new Page();
+        page.setCode(doc.connection().response().statusCode());
+        page.setPath(url.substring(url.lastIndexOf(rootUrl)));
+        page.setSite(siteRepository.findSiteByUrl(rootUrl));
+        page.setContent(doc.html());
+//        System.out.println(page.getPath());
+        Page savedPage = pageRepository.save(page);
     }
 }
