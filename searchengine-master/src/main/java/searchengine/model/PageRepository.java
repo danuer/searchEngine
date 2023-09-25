@@ -10,6 +10,7 @@ import java.util.List;
 public interface PageRepository extends CrudRepository<Page, Integer> {
     List<Integer> findAllBySiteId(Integer id);
     Page searchAllBySite(Site site);
+    Page searchByPath(String path);
 
     @Transactional
     void deleteAllBySite(Site site);

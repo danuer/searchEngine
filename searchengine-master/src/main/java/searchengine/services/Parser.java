@@ -8,6 +8,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
 import searchengine.model.Page;
 import searchengine.model.PageRepository;
+import searchengine.model.Site;
 import searchengine.model.SiteRepository;
 
 import java.io.IOException;
@@ -51,7 +52,10 @@ public class Parser extends RecursiveTask<Set<String>> {
     protected Set<String> compute() {
         childLinkList = new HashSet<>();
         List<Parser> taskList = new ArrayList<>();
-        parseLinks(url);
+        Page checkPage = pageRepository.searchByPath(url);
+        if (checkPage == null) {
+            parseLinks(url);
+        }
         if (!childLinkList.isEmpty() && !isInterrupted) {
 //            System.out.println("найдено " + childLinkList.size());
             childLinkList.forEach(link -> {
@@ -127,13 +131,15 @@ public class Parser extends RecursiveTask<Set<String>> {
         return false;
     }
 
-    private void savePage (Document doc, String url, String rootUrl) {
+    private void savePage(Document doc, String url, String rootUrl) {
         Page page = new Page();
         page.setCode(doc.connection().response().statusCode());
         page.setPath(url.substring(url.lastIndexOf(rootUrl)));
         page.setSite(siteRepository.findSiteByUrl(rootUrl));
         page.setContent(doc.html());
-//        System.out.println(page.getPath());
         Page savedPage = pageRepository.save(page);
+        Site site = savedPage.getSite();
+        site.setStatusTime(System.currentTimeMillis());
+        siteRepository.save(site);
     }
 }

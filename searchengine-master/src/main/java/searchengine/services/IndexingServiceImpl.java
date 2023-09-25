@@ -27,7 +27,6 @@ public class IndexingServiceImpl implements IndexingService {
     @Autowired
     private PageRepository pageRepository;
     static boolean isInterrupted;
-
     private final GetResponse response = new GetResponse();
     private List<Site> sitesList;
     private ForkJoinPool fjp;
@@ -43,7 +42,7 @@ public class IndexingServiceImpl implements IndexingService {
                 response.setError("Индексация уже запущена");
                 return new ResponseEntity<>(response, HttpStatus.OK);
             }
-        } else {
+        }
             fjp = new ForkJoinPool(Runtime.getRuntime().availableProcessors());
             for (Site site : sitesList) {
                 String url = site.getUrl();
@@ -53,16 +52,8 @@ public class IndexingServiceImpl implements IndexingService {
                 searchengine.model.Site modelSite = new searchengine.model.Site();
                 saveNewSite(name, url, modelSite);
                 Parser parser = new Parser(url, siteRepository, pageRepository);
-//                parser.fork();
                 parserList.add(parser);
-//                try {
-//                    fjp.execute(parser);
-//                } catch (RuntimeException e) {
-//                    e.printStackTrace();
-//                    writeErrToRepo(modelSite);
-//                }
             }
-        }
         StatusSaver ss = new StatusSaver(fjp, parserList, siteRepository);
         ss.start();
         response.setResult(true);
@@ -98,10 +89,7 @@ public class IndexingServiceImpl implements IndexingService {
     @Override
     public ResponseEntity<GetResponse> stopIndexing() {
         isInterrupted = true;
-//        for (ForkJoinPool fjp : fjpList) {
         fjp.shutdownNow();
-//        }
-
         for (Site site : sitesList) {
             String name = site.getName();
             searchengine.model.Site editSite = siteRepository.findSiteByName(name);
@@ -112,11 +100,9 @@ public class IndexingServiceImpl implements IndexingService {
                 siteRepository.save(editSite);
             }
         }
-
         GetResponse response = new GetResponse();
         response.setResult(true);
         response.setError("");
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
-
 }

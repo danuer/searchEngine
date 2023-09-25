@@ -33,7 +33,6 @@ public class ApiController {
 
     @GetMapping("/startIndexing")
     public ResponseEntity<GetResponse> startIndexing() throws IOException, InterruptedException {
-
         return indexingService.startIndexing();
     }
 
