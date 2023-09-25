@@ -15,7 +15,7 @@ public class Lemma {
     private int id;
 
     @JoinColumn(name = "site_id", nullable = false)
-    @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @ManyToOne//(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Site site;
 
     @Column(columnDefinition = "VARCHAR(255)", nullable = false)

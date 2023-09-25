@@ -1,6 +1,8 @@
 package searchengine.services;
 
 import lombok.RequiredArgsConstructor;
+import org.apache.lucene.morphology.LuceneMorphology;
+import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,6 +14,7 @@ import searchengine.model.PageRepository;
 import searchengine.model.SiteRepository;
 import searchengine.model.StatusList;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ForkJoinPool;
@@ -33,7 +36,14 @@ public class IndexingServiceImpl implements IndexingService {
     private List<Parser> parserList;
 
     @Override
-    public ResponseEntity<GetResponse> startIndexing() {
+    public ResponseEntity<GetResponse> startIndexing() throws IOException {
+
+        LuceneMorphology luceneMorph =
+                new RussianLuceneMorphology();
+        List<String> wordBaseForms =
+                luceneMorph.getNormalForms("леса");
+        wordBaseForms.forEach(System.out::println);
+
         sitesList = sites.getSites();
         parserList = new ArrayList<>();
         if (fjp != null) {

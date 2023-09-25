@@ -90,8 +90,9 @@ public class Parser extends RecursiveTask<Set<String>> {
         try {
             Thread.sleep(500);
             Document doc = connect(url).get();
-            savePage(doc, url, rootUrl);
-
+            Page savedPage = savePage(doc, url, rootUrl);
+            PageIndexer indexer = new PageIndexer(doc, url, rootUrl,siteRepository, pageRepository, savedPage);
+            new Thread(indexer).start();
             Elements links = doc.select("a");
             links.forEach(element -> {
                 String link = element.attr("abs:href");
@@ -131,7 +132,7 @@ public class Parser extends RecursiveTask<Set<String>> {
         return false;
     }
 
-    private void savePage(Document doc, String url, String rootUrl) {
+    private Page savePage(Document doc, String url, String rootUrl) {
         Page page = new Page();
         page.setCode(doc.connection().response().statusCode());
         page.setPath(url.substring(url.lastIndexOf(rootUrl)));
@@ -141,5 +142,6 @@ public class Parser extends RecursiveTask<Set<String>> {
         Site site = savedPage.getSite();
         site.setStatusTime(System.currentTimeMillis());
         siteRepository.save(site);
+        return savedPage;
     }
 }

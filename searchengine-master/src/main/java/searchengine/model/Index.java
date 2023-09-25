@@ -15,11 +15,11 @@ public class Index {
     private int id;
 
     @JoinColumn(name = "page_id", nullable = false)
-    @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @ManyToOne//(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Page page;
 
     @JoinColumn(name = "lemma_id", nullable = false)
-    @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @ManyToOne//(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Lemma lemma;
 
     @Column(name = "`rank`",columnDefinition = "FLOAT", nullable = false)
