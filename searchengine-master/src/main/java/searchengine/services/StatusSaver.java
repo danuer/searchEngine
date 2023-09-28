@@ -1,7 +1,7 @@
 package searchengine.services;
 
 import lombok.Data;
-import searchengine.model.SiteRepository;
+import searchengine.model.repositorys.SiteRepository;
 import searchengine.model.StatusList;
 
 import java.util.List;

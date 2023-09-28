@@ -1,0 +1,28 @@
+#spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+server:
+  port: 8080
+spring:
+  datasource:
+    username: root
+    password: 2023RooT0612PasS
+    url: jdbc:mysql://localhost:3306/search_engine?useSSL=false&requireSSL=false&allowPublicKeyRetrieval=true&useUnicode=true&characterEncoding=utf8
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    open-in-view: false
+indexing-settings:
+  sites:
+#    - url: https://www.lenta.ru
+#      name: Лента.ру
+#    - url: https://skillbox.ru
+#      name: Skillbox
+    - url: https://playback.ru
+      name: PlayBack.Ru
+    - url: https://volochek.life
+      name: volochek.life
+    - url: https://ipfran.ru
+      name: ipfran.ru

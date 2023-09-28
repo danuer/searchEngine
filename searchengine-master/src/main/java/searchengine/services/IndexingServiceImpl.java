@@ -1,8 +1,6 @@
 package searchengine.services;
 
 import lombok.RequiredArgsConstructor;
-import org.apache.lucene.morphology.LuceneMorphology;
-import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -10,9 +8,11 @@ import org.springframework.stereotype.Service;
 import searchengine.config.Site;
 import searchengine.config.SitesList;
 import searchengine.dto.response.GetResponse;
-import searchengine.model.PageRepository;
-import searchengine.model.SiteRepository;
-import searchengine.model.StatusList;
+import searchengine.model.*;
+import searchengine.model.repositorys.IndexRepository;
+import searchengine.model.repositorys.LemmaRepository;
+import searchengine.model.repositorys.PageRepository;
+import searchengine.model.repositorys.SiteRepository;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -29,6 +29,10 @@ public class IndexingServiceImpl implements IndexingService {
     private SiteRepository siteRepository;
     @Autowired
     private PageRepository pageRepository;
+    @Autowired
+    private LemmaRepository lemmaRepository;
+    @Autowired
+    private IndexRepository indexRepository;
     static boolean isInterrupted;
     private final GetResponse response = new GetResponse();
     private List<Site> sitesList;
@@ -37,13 +41,6 @@ public class IndexingServiceImpl implements IndexingService {
 
     @Override
     public ResponseEntity<GetResponse> startIndexing() throws IOException {
-
-        LuceneMorphology luceneMorph =
-                new RussianLuceneMorphology();
-        List<String> wordBaseForms =
-                luceneMorph.getNormalForms("леса");
-        wordBaseForms.forEach(System.out::println);
-
         sitesList = sites.getSites();
         parserList = new ArrayList<>();
         if (fjp != null) {
@@ -61,7 +58,7 @@ public class IndexingServiceImpl implements IndexingService {
                 cleanRepo(name);
                 searchengine.model.Site modelSite = new searchengine.model.Site();
                 saveNewSite(name, url, modelSite);
-                Parser parser = new Parser(url, siteRepository, pageRepository);
+                Parser parser = new Parser(url, siteRepository, pageRepository, lemmaRepository, indexRepository);
                 parserList.add(parser);
             }
         StatusSaver ss = new StatusSaver(fjp, parserList, siteRepository);
@@ -75,8 +72,7 @@ public class IndexingServiceImpl implements IndexingService {
     private void cleanRepo(String name) {
         searchengine.model.Site siteId = siteRepository.findSiteByName(name);
         if (siteId != null) {
-            pageRepository.deleteAllBySite(siteId);
-            siteRepository.deleteById(siteId.getId());
+            siteRepository.deleteAllById(siteId.getId());
         }
     }
 

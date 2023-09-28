@@ -6,10 +6,11 @@ import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
-import searchengine.model.Page;
-import searchengine.model.PageRepository;
-import searchengine.model.Site;
-import searchengine.model.SiteRepository;
+import searchengine.model.*;
+import searchengine.model.repositorys.IndexRepository;
+import searchengine.model.repositorys.LemmaRepository;
+import searchengine.model.repositorys.PageRepository;
+import searchengine.model.repositorys.SiteRepository;
 
 import java.io.IOException;
 import java.util.*;
@@ -24,26 +25,41 @@ import static searchengine.services.IndexingServiceImpl.isInterrupted;
 public class Parser extends RecursiveTask<Set<String>> {
     private SiteRepository siteRepository;
     private PageRepository pageRepository;
+    private LemmaRepository lemmaRepository;
+    private IndexRepository indexRepository;
     private ConcurrentSkipListSet<String> linkList;
     private Set<String> childLinkList;
     private final String url;
     private final String rootUrl;
 
-    public Parser(String url, SiteRepository siteRepository, PageRepository pageRepository) {
+    public Parser(String url,
+                  SiteRepository siteRepository,
+                  PageRepository pageRepository,
+                  LemmaRepository lemmaRepository,
+                  IndexRepository indexRepository) {
         this.url = url;
         this.siteRepository = siteRepository;
         this.pageRepository = pageRepository;
+        this.lemmaRepository = lemmaRepository;
+        this.indexRepository = indexRepository;
         this.rootUrl = url;
         this.linkList = new ConcurrentSkipListSet<>();
         this.linkList.add(url);
     }
 
-    public Parser(String url, SiteRepository siteRepository, PageRepository pageRepository,
-                  ConcurrentSkipListSet<String> list, String rootUrl)
+    public Parser(String url,
+                  SiteRepository siteRepository,
+                  PageRepository pageRepository,
+                  ConcurrentSkipListSet<String> list,
+                  String rootUrl,
+                  LemmaRepository lemmaRepository,
+                  IndexRepository indexRepository)
             throws IOException, InterruptedException {
         this.url = url;
         this.siteRepository = siteRepository;
         this.pageRepository = pageRepository;
+        this.lemmaRepository = lemmaRepository;
+        this.indexRepository = indexRepository;
         this.rootUrl = rootUrl;
         this.linkList = list;
     }
@@ -60,7 +76,7 @@ public class Parser extends RecursiveTask<Set<String>> {
 //            System.out.println("найдено " + childLinkList.size());
             childLinkList.forEach(link -> {
                 try {
-                    Parser task = new Parser(link, siteRepository, pageRepository, linkList, rootUrl);
+                    Parser task = new Parser(link, siteRepository, pageRepository, linkList, rootUrl, lemmaRepository, indexRepository);
                     task.fork();
                     taskList.add(task);
                 } catch (InterruptedException | IOException e) {
@@ -90,9 +106,11 @@ public class Parser extends RecursiveTask<Set<String>> {
         try {
             Thread.sleep(500);
             Document doc = connect(url).get();
+
             Page savedPage = savePage(doc, url, rootUrl);
-            PageIndexer indexer = new PageIndexer(doc, url, rootUrl,siteRepository, pageRepository, savedPage);
+            PageIndexer indexer = new PageIndexer(doc, url, rootUrl, siteRepository, pageRepository, savedPage, lemmaRepository, indexRepository);
             new Thread(indexer).start();
+
             Elements links = doc.select("a");
             links.forEach(element -> {
                 String link = element.attr("abs:href");
