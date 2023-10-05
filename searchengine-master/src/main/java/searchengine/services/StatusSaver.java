@@ -1,6 +1,7 @@
 package searchengine.services;
 
 import lombok.Data;
+import lombok.Getter;
 import searchengine.model.repositorys.SiteRepository;
 import searchengine.model.StatusList;
 
@@ -8,7 +9,6 @@ import java.util.List;
 import java.util.TreeSet;
 import java.util.concurrent.ForkJoinPool;
 
-@Data
 public class StatusSaver extends Thread {
     public StatusSaver(ForkJoinPool fjp, List<Parser> parserList, SiteRepository siteRepository) {
         this.parserList = parserList;

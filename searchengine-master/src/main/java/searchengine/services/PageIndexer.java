@@ -15,7 +15,7 @@ import java.util.*;
 @Data
 public class PageIndexer implements Runnable {
 
-    private Document doc;
+//    private Document doc;
     private String url;
     private String rootUrl;
     private SiteRepository siteRepository;
@@ -25,8 +25,11 @@ public class PageIndexer implements Runnable {
     private Page page;
     private Lemma savedLemma;
     private Map<String, Integer> lemmas;
+    private Index savedIndex;
+//    private List<Lemma> lemmaListForSave = new ArrayList<>();
+//    private List<Index> indexListForSave = new ArrayList<>();
 
-    public PageIndexer(Document doc,
+    public PageIndexer(//Document doc,
                        String url,
                        String rootUrl,
                        SiteRepository siteRepository,
@@ -34,7 +37,7 @@ public class PageIndexer implements Runnable {
                        Page page,
                        LemmaRepository lemmaRepository,
                        IndexRepository indexRepository) {
-        this.doc = doc;
+//        this.doc = doc;
         this.url = url;
         this.rootUrl = rootUrl;
         this.siteRepository = siteRepository;
@@ -47,28 +50,39 @@ public class PageIndexer implements Runnable {
     @Override
     public void run() {
         try {
-            LemmaFinder lem = LemmaFinder.getInstance();
+            LemmaFinder lemmatizator = LemmaFinder.getInstance();
             String text = Jsoup.parse(page.getContent()).text();
-            lemmas = lem.collectLemmas(text);
+            lemmas = lemmatizator.collectLemmas(text);
             if (!lemmas.isEmpty()) {
                 for (Map.Entry<String, Integer> entry : lemmas.entrySet()) {
                     Lemma lemmaEntity = lemmaRepository.searchByLemmaAndSite(entry.getKey(), page.getSite());
                     if (lemmaEntity != null) {
-                        int lemFreq = lemmaEntity.getFrequency() + 1;
-                        lemmaEntity.setFrequency(lemFreq);
+                        int lemmaFrequency = lemmaEntity.getFrequency() + 1;
+                        lemmaEntity.setFrequency(lemmaFrequency);
                     } else {
                         lemmaEntity = new Lemma();
                         lemmaEntity.setLemma(entry.getKey());
                         lemmaEntity.setFrequency(1);
                         lemmaEntity.setSite(page.getSite());
                     }
-                    savedLemma = lemmaRepository.save(lemmaEntity);
+//                    lemmaListForSave.add(lemmaEntity);
+
+                    synchronized (lemmaRepository) {
+                        savedLemma = lemmaRepository.save(lemmaEntity);
+                    }
                     Index indexEntity = new Index();
                     indexEntity.setPage(page);
                     indexEntity.setLemma(savedLemma);
                     indexEntity.setRank(entry.getValue());
-                    indexRepository.save(indexEntity);
+//                    indexListForSave.add(indexEntity);
+//                    synchronized (indexRepository) {
+                    savedIndex = indexRepository.save(indexEntity);
+//                    }
                 }
+//                synchronized (lemmaRepository) {
+//                    Iterable<Lemma> savedLemmas = lemmaRepository.saveAll(lemmaListForSave);
+//                }
+//                indexRepository.saveAll(indexListForSave);
             }
         } catch (Exception e) {
             e.printStackTrace();

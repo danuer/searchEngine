@@ -91,7 +91,7 @@ public class Parser extends RecursiveTask<Set<String>> {
         return linkList;
     }
 
-    private Connection connect(String url) {
+    public static Connection connect(String url) {
         return Jsoup.connect(url)
                 .ignoreHttpErrors(true)
                 .ignoreContentType(true)
@@ -106,9 +106,8 @@ public class Parser extends RecursiveTask<Set<String>> {
         try {
             Thread.sleep(500);
             Document doc = connect(url).get();
-
             Page savedPage = savePage(doc, url, rootUrl);
-            PageIndexer indexer = new PageIndexer(doc, url, rootUrl, siteRepository, pageRepository, savedPage, lemmaRepository, indexRepository);
+            PageIndexer indexer = new PageIndexer(url, rootUrl, siteRepository, pageRepository, savedPage, lemmaRepository, indexRepository);
             new Thread(indexer).start();
 
             Elements links = doc.select("a");
@@ -150,7 +149,7 @@ public class Parser extends RecursiveTask<Set<String>> {
         return false;
     }
 
-    private Page savePage(Document doc, String url, String rootUrl) {
+    public Page savePage(Document doc, String url, String rootUrl) {
         Page page = new Page();
         page.setCode(doc.connection().response().statusCode());
         page.setPath(url.substring(url.lastIndexOf(rootUrl)));

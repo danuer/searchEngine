@@ -42,11 +42,9 @@ public class ApiController {
     }
 
     @PostMapping("/{indexPage}")
-    public ResponseEntity<PostResponse> addPage() {
-        PostResponse response = new PostResponse();
-        response.setResult(true);
-        response.setError("");
-        return new ResponseEntity<>(response, HttpStatus.OK);
+    public ResponseEntity<PostResponse> addPage(@RequestParam String url) throws IOException {
+
+        return indexingService.indexingPage(url);
     }
 
     @GetMapping("/{search}")
