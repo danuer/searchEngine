@@ -9,6 +9,6 @@ import java.io.IOException;
 public interface IndexingService {
 
     ResponseEntity<GetResponse> startIndexing();
-    ResponseEntity<GetResponse> stopIndexing();
+    ResponseEntity<GetResponse> stopIndexing() throws InterruptedException;
     ResponseEntity<PostResponse> indexingPage(String url) throws IOException;
 }

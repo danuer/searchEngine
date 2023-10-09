@@ -7,14 +7,16 @@ import searchengine.model.Page;
 import searchengine.model.Site;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 @Transactional
 public interface PageRepository extends CrudRepository<Page, Integer> {
     List<Integer> findAllByPathAndSite(String path, Site site);
     Page searchAllBySite(Site site);
-    Page searchByPath(String path);
+    Optional<Page> findByPath(String path);
 
 
     void deleteAllBySite(Site site);
+    void deleteAllById(Integer id);
 }

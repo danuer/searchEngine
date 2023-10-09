@@ -18,9 +18,11 @@ import searchengine.model.repositorys.SiteRepository;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.ForkJoinPool;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static searchengine.services.Parser.connect;
 
@@ -29,6 +31,7 @@ import static searchengine.services.Parser.connect;
 @RequiredArgsConstructor
 public class IndexingServiceImpl implements IndexingService {
 
+    private final PageIndexerService pageIndexerService;
     private final SitesList sites;
     @Autowired
     private SiteRepository siteRepository;
@@ -39,17 +42,15 @@ public class IndexingServiceImpl implements IndexingService {
     @Autowired
     private IndexRepository indexRepository;
     static boolean isInterrupted;
-    private GetResponse getResponse = new GetResponse();
-    private PostResponse postResponse = new PostResponse();
+    private final GetResponse getResponse = new GetResponse();
+    private final PostResponse postResponse = new PostResponse();
     private List<Site> sitesList;
-    ;
     private ForkJoinPool fjp;
-    private List<Parser> parserList;
 
     @Override
     public ResponseEntity<GetResponse> startIndexing() {
         sitesList = sites.getSites();
-        parserList = new ArrayList<>();
+        List<Parser> parserList = new ArrayList<>();
         if (fjp != null) {
             if (fjp.getActiveThreadCount() > 0) {
                 getResponse.setResult(false);
@@ -61,9 +62,9 @@ public class IndexingServiceImpl implements IndexingService {
                 String url = site.getUrl();
                 String name = site.getName();
                 isInterrupted = false;
-                cleanRepo(name);
+                cleanSiteRepository(name);
                 saveNewSite(name, url);
-                Parser parser = new Parser(url, siteRepository, pageRepository, lemmaRepository, indexRepository);
+                Parser parser = new Parser(pageIndexerService, url, siteRepository, pageRepository, lemmaRepository, indexRepository);
                 parserList.add(parser);
             }
             StatusSaver ss = new StatusSaver(fjp, parserList, siteRepository);
@@ -74,11 +75,9 @@ public class IndexingServiceImpl implements IndexingService {
         return new ResponseEntity<>(getResponse, HttpStatus.OK);
     }
 
-    private void cleanRepo(String name) {
-        searchengine.model.Site siteId = siteRepository.findSiteByName(name);
-        if (siteId != null) {
-            siteRepository.deleteAllById(siteId.getId());
-        }
+    private void cleanSiteRepository(String name) {
+        Optional<searchengine.model.Site> siteId = siteRepository.findSiteByName(name);
+        siteId.ifPresent(site -> siteRepository.deleteAllById(site.getId()));
     }
 
     private searchengine.model.Site saveNewSite(String name, String url) {
@@ -100,21 +99,25 @@ public class IndexingServiceImpl implements IndexingService {
     }
 
     @Override
-    public ResponseEntity<GetResponse> stopIndexing() {
+    public ResponseEntity<GetResponse> stopIndexing() throws InterruptedException {
         sitesList = sites.getSites();
         if (fjp != null) {
             if (fjp.getActiveThreadCount() != 0) {
                 isInterrupted = true;
+                Thread.sleep(2000);
                 fjp.shutdownNow();
                 for (Site site : sitesList) {
                     String name = site.getName();
-                    searchengine.model.Site editSite = siteRepository.findSiteByName(name);
-                    if (!editSite.getStatus().equals(StatusList.INDEXED)) {
-                        editSite.setStatus(StatusList.FAILED);
-                        editSite.setStatusTime(System.currentTimeMillis());
-                        editSite.setLastError("Индексация остановлена пользователем");
-                        siteRepository.save(editSite);
-                    }
+                    Optional<searchengine.model.Site> editSiteOpt = siteRepository.findSiteByName(name);
+                    editSiteOpt.ifPresent(site1 -> {
+                        if (!site1.getStatus().equals(StatusList.INDEXED)) {
+                            site1.setStatus(StatusList.FAILED);
+                            site1.setStatusTime(System.currentTimeMillis());
+                            site1.setLastError("Индексация остановлена пользователем");
+                            siteRepository.save(site1);
+                        }
+                    });
+
                 }
 //            GetResponse response = new GetResponse();
                 getResponse.setResult(true);
@@ -137,23 +140,27 @@ public class IndexingServiceImpl implements IndexingService {
         if (url.endsWith("/")) {
             url = url.substring(0, url.length() - 1);
         }
-        String rootUrl = url.split("/")[0];
-        for (Site site : sitesList) {
-            if (rootUrl.equals(site.getUrl())) {
-                searchengine.model.Site modelSite = siteRepository.findSiteByName(site.getName());
-                if (modelSite == null) {
-                    modelSite = saveNewSite(site.getName(), url);
+        String regex = "https?\\:\\/\\/[^\\/]+";
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(url);
+        if(matcher.find()) {
+            String rootUrl = matcher.group(0);
+            for (Site site : sitesList) {
+                if (rootUrl.equals(site.getUrl())) {
+                    Optional<searchengine.model.Site> modelSiteOpt = siteRepository.findSiteByName(site.getName());
+                    if (modelSiteOpt.isEmpty()) {
+                        searchengine.model.Site modelSite = saveNewSite(site.getName(), site.getUrl());
+                    }
+                    Parser parser = new Parser(pageIndexerService, url, siteRepository, pageRepository, lemmaRepository, indexRepository);
+                    Document doc = connect(url).get();
+                    String entityUrl = url.substring(matcher.end());
+                    Optional<Page> pageOpt = pageRepository.findByPath(entityUrl);
+                    pageOpt.ifPresent(page -> pageRepository.deleteAllById(page.getId()));
+                    Page page = parser.savePage(doc, url, rootUrl);
+                    pageIndexerService.pageIndexer(url, rootUrl, page);
+                    postResponse.setResult(true);
+                    postResponse.setError("");
                 }
-                Parser parser = new Parser(url, siteRepository, pageRepository, lemmaRepository, indexRepository);
-                Document doc = connect(url).get();
-                Page page = pageRepository.searchByPath(url);
-                if (page == null) {
-                    page = parser.savePage(doc, url, rootUrl);
-                }
-                PageIndexer indexer = new PageIndexer(url, rootUrl, siteRepository, pageRepository, page, lemmaRepository, indexRepository);
-                new Thread(indexer).start();
-                postResponse.setResult(true);
-                postResponse.setError("");
             }
         }
         return new ResponseEntity<>(postResponse, HttpStatus.OK);

@@ -16,13 +16,16 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.RecursiveTask;
-
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static searchengine.services.IndexingServiceImpl.isInterrupted;
 
 @Getter
 @Setter
 public class Parser extends RecursiveTask<Set<String>> {
+
+    private final PageIndexerService pageIndexerService;
     private SiteRepository siteRepository;
     private PageRepository pageRepository;
     private LemmaRepository lemmaRepository;
@@ -31,12 +34,14 @@ public class Parser extends RecursiveTask<Set<String>> {
     private Set<String> childLinkList;
     private final String url;
     private final String rootUrl;
+    Document doc;
 
-    public Parser(String url,
+    public Parser(PageIndexerService pageIndexerService, String url,
                   SiteRepository siteRepository,
                   PageRepository pageRepository,
                   LemmaRepository lemmaRepository,
                   IndexRepository indexRepository) {
+        this.pageIndexerService = pageIndexerService;
         this.url = url;
         this.siteRepository = siteRepository;
         this.pageRepository = pageRepository;
@@ -47,7 +52,7 @@ public class Parser extends RecursiveTask<Set<String>> {
         this.linkList.add(url);
     }
 
-    public Parser(String url,
+    public Parser(PageIndexerService pageIndexerService, String url,
                   SiteRepository siteRepository,
                   PageRepository pageRepository,
                   ConcurrentSkipListSet<String> list,
@@ -55,6 +60,7 @@ public class Parser extends RecursiveTask<Set<String>> {
                   LemmaRepository lemmaRepository,
                   IndexRepository indexRepository)
             throws IOException, InterruptedException {
+        this.pageIndexerService = pageIndexerService;
         this.url = url;
         this.siteRepository = siteRepository;
         this.pageRepository = pageRepository;
@@ -68,15 +74,13 @@ public class Parser extends RecursiveTask<Set<String>> {
     protected Set<String> compute() {
         childLinkList = new HashSet<>();
         List<Parser> taskList = new ArrayList<>();
-        Page checkPage = pageRepository.searchByPath(url);
-        if (checkPage == null) {
-            parseLinks(url);
-        }
+//        checkPage(url, rootUrl);
+        parseLinks(url);
         if (!childLinkList.isEmpty() && !isInterrupted) {
 //            System.out.println("найдено " + childLinkList.size());
             childLinkList.forEach(link -> {
                 try {
-                    Parser task = new Parser(link, siteRepository, pageRepository, linkList, rootUrl, lemmaRepository, indexRepository);
+                    Parser task = new Parser(pageIndexerService, link, siteRepository, pageRepository, linkList, rootUrl, lemmaRepository, indexRepository);
                     task.fork();
                     taskList.add(task);
                 } catch (InterruptedException | IOException e) {
@@ -98,17 +102,16 @@ public class Parser extends RecursiveTask<Set<String>> {
                 .userAgent("Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) " +
                         "Gecko/20070725 Firefox/2.0.0.6")
                 .referrer("https://www.google.com")
-                .timeout(30000)
+                .timeout(5000)
                 .followRedirects(false);
     }
 
     private void parseLinks(String url) {
         try {
             Thread.sleep(500);
-            Document doc = connect(url).get();
+            doc = connect(url).get();
             Page savedPage = savePage(doc, url, rootUrl);
-            PageIndexer indexer = new PageIndexer(url, rootUrl, siteRepository, pageRepository, savedPage, lemmaRepository, indexRepository);
-            new Thread(indexer).start();
+            pageIndexerService.pageIndexer(url, rootUrl, savedPage);
 
             Elements links = doc.select("a");
             links.forEach(element -> {
@@ -133,7 +136,7 @@ public class Parser extends RecursiveTask<Set<String>> {
 //        Matcher matcher = pattern.matcher(link);
 //        while (matcher.find()) {
         if (!linkList.contains(link) &&
-                link.startsWith(url) &&
+                link.startsWith(rootUrl) &&
                 !link.contains("extlink") &&
                 !link.equals(url) &&
                 !link.contains(".pdf") &&
@@ -150,15 +153,35 @@ public class Parser extends RecursiveTask<Set<String>> {
     }
 
     public Page savePage(Document doc, String url, String rootUrl) {
-        Page page = new Page();
-        page.setCode(doc.connection().response().statusCode());
-        page.setPath(url.substring(url.lastIndexOf(rootUrl)));
-        page.setSite(siteRepository.findSiteByUrl(rootUrl));
-        page.setContent(doc.html());
-        Page savedPage = pageRepository.save(page);
-        Site site = savedPage.getSite();
-        site.setStatusTime(System.currentTimeMillis());
-        siteRepository.save(site);
+        Page savedPage = new Page();
+        String regex = "https?\\:\\/\\/[^\\/]+";
+        Pattern pattern = Pattern.compile(regex);
+        Matcher matcher = pattern.matcher(url);
+        if (matcher.find()) {
+            Page page = new Page();
+            page.setCode(doc.connection().response().statusCode());
+            if (url.equals(rootUrl)) {
+                page.setPath(url);
+            } else {
+                page.setPath(url.substring(matcher.end()));
+            }
+            page.setSite(siteRepository.findSiteByUrl(rootUrl));
+            page.setContent(doc.html());
+            savedPage = pageRepository.save(page);
+            Site site = savedPage.getSite();
+            site.setStatusTime(System.currentTimeMillis());
+            siteRepository.save(site);
+        }
         return savedPage;
+    }
+    private void checkPage(String url, String rootUrl) {
+        String fullUrl = "";
+        if (!url.equals(rootUrl)) {
+            fullUrl.concat(rootUrl).concat(url);
+        }
+        Optional<Page> checkPageOpt = pageRepository.findByPath(fullUrl);
+        if (checkPageOpt.isEmpty()) {
+            parseLinks(fullUrl);
+        }
     }
 }

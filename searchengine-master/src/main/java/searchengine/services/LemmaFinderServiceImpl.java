@@ -1,30 +1,33 @@
 package searchengine.services;
 
-import lombok.Data;
+import lombok.RequiredArgsConstructor;
 import org.apache.lucene.morphology.LuceneMorphology;
-import org.apache.lucene.morphology.russian.RussianLuceneMorphology;
+import org.springframework.stereotype.Service;
+import searchengine.config.LemmaConfiguration;
 
 import java.io.IOException;
 import java.util.*;
 
-@Data
-public class LemmaFinder {
+@Service
+@RequiredArgsConstructor
+public class LemmaFinderServiceImpl implements LemmaFinderService {
+
     private final LuceneMorphology luceneMorphology;
     private static final String WORD_TYPE_REGEX = "\\W\\w&&[^а-яА-Я\\s]";
     private static final String[] particlesNames = new String[]{"МЕЖД", "ПРЕДЛ", "СОЮЗ"};
 
-    public static LemmaFinder getInstance() throws IOException {
-        LuceneMorphology morphology= new RussianLuceneMorphology();
-        return new LemmaFinder(morphology);
-    }
+//    public static LemmaFinderImpl getInstance() throws IOException {
+//        LuceneMorphology morphology= new RussianLuceneMorphology();
+//        return new LemmaFinderImpl(morphology);
+//    }
 
-    private LemmaFinder(LuceneMorphology luceneMorphology) {
-        this.luceneMorphology = luceneMorphology;
-    }
-
-    private LemmaFinder(){
-        throw new RuntimeException("Disallow construct");
-    }
+//    private LemmaFinderImpl(LuceneMorphology luceneMorphology) {
+//        this.luceneMorphology = luceneMorphology;
+//    }
+//
+//    private LemmaFinderImpl(){
+//        throw new RuntimeException("Disallow construct");
+//    }
 
     /**
      * Метод разделяет текст на слова, находит все леммы и считает их количество.
@@ -32,7 +35,8 @@ public class LemmaFinder {
      * @param text текст из которого будут выбираться леммы
      * @return ключ является леммой, а значение количеством найденных лемм
      */
-    public Map<String, Integer> collectLemmas(String text) {
+    @Override
+    public Map<String, Integer> collectLemmas(String text) throws IOException {
         String[] words = arrayContainsRussianWords(text);
         HashMap<String, Integer> lemmas = new HashMap<>();
 
@@ -68,7 +72,8 @@ public class LemmaFinder {
      * @param text текст из которого собираем все леммы
      * @return набор уникальных лемм найденных в тексте
      */
-    public Set<String> getLemmaSet(String text) {
+    @Override
+    public Set<String> getLemmaSet(String text) throws IOException {
         String[] textArray = arrayContainsRussianWords(text);
         Set<String> lemmaSet = new HashSet<>();
         for (String word : textArray) {
@@ -103,7 +108,7 @@ public class LemmaFinder {
                 .split("\\s+");
     }
 
-    private boolean isCorrectWordForm(String word) {
+    private boolean isCorrectWordForm(String word) throws IOException {
         List<String> wordInfo = luceneMorphology.getMorphInfo(word);
         for (String morphInfo : wordInfo) {
             if (morphInfo.matches(WORD_TYPE_REGEX)) {

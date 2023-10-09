@@ -1,58 +1,44 @@
 package searchengine.services;
 
 import lombok.Data;
+import lombok.RequiredArgsConstructor;
 import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 import searchengine.model.*;
 import searchengine.model.repositorys.IndexRepository;
 import searchengine.model.repositorys.LemmaRepository;
 import searchengine.model.repositorys.PageRepository;
 import searchengine.model.repositorys.SiteRepository;
 
-import java.io.IOException;
 import java.util.*;
 
-@Data
-public class PageIndexer implements Runnable {
+@Service
+@RequiredArgsConstructor
+public class PageIndexerServiceImpl implements PageIndexerService {
 
-//    private Document doc;
-    private String url;
-    private String rootUrl;
-    private SiteRepository siteRepository;
-    private PageRepository pageRepository;
-    private LemmaRepository lemmaRepository;
+    @Autowired
+    private final LemmaFinderService lemmaFinderService;
+//    private String url;
+//    private String rootUrl;
+    @Autowired
+    private final SiteRepository siteRepository;
+    @Autowired
+    private final PageRepository pageRepository;
+    @Autowired
+    private final LemmaRepository lemmaRepository;
+    @Autowired
     private IndexRepository indexRepository;
-    private Page page;
-    private Lemma savedLemma;
-    private Map<String, Integer> lemmas;
-    private Index savedIndex;
-//    private List<Lemma> lemmaListForSave = new ArrayList<>();
-//    private List<Index> indexListForSave = new ArrayList<>();
-
-    public PageIndexer(//Document doc,
-                       String url,
-                       String rootUrl,
-                       SiteRepository siteRepository,
-                       PageRepository pageRepository,
-                       Page page,
-                       LemmaRepository lemmaRepository,
-                       IndexRepository indexRepository) {
-//        this.doc = doc;
-        this.url = url;
-        this.rootUrl = rootUrl;
-        this.siteRepository = siteRepository;
-        this.pageRepository = pageRepository;
-        this.page = page;
-        this.lemmaRepository = lemmaRepository;
-        this.indexRepository = indexRepository;
-    }
+//    private Page page;
+    //    private List<Lemma> lemmaListForSave = new ArrayList<>();
+    //    private List<Index> indexListForSave = new ArrayList<>();
 
     @Override
-    public void run() {
+    public void pageIndexer(String url, String rootUrl, Page page) {
+//        Thread.currentThread().setName("PageIndexerThread");
         try {
-            LemmaFinder lemmatizator = LemmaFinder.getInstance();
             String text = Jsoup.parse(page.getContent()).text();
-            lemmas = lemmatizator.collectLemmas(text);
+            Map<String, Integer> lemmas = lemmaFinderService.collectLemmas(text);
             if (!lemmas.isEmpty()) {
                 for (Map.Entry<String, Integer> entry : lemmas.entrySet()) {
                     Lemma lemmaEntity = lemmaRepository.searchByLemmaAndSite(entry.getKey(), page.getSite());
@@ -67,6 +53,7 @@ public class PageIndexer implements Runnable {
                     }
 //                    lemmaListForSave.add(lemmaEntity);
 
+                    Lemma savedLemma;
                     synchronized (lemmaRepository) {
                         savedLemma = lemmaRepository.save(lemmaEntity);
                     }
@@ -76,7 +63,7 @@ public class PageIndexer implements Runnable {
                     indexEntity.setRank(entry.getValue());
 //                    indexListForSave.add(indexEntity);
 //                    synchronized (indexRepository) {
-                    savedIndex = indexRepository.save(indexEntity);
+                    Index savedIndex = indexRepository.save(indexEntity);
 //                    }
                 }
 //                synchronized (lemmaRepository) {
