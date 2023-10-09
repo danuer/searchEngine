@@ -34,13 +34,13 @@ public class IndexingServiceImpl implements IndexingService {
     private final PageIndexerService pageIndexerService;
     private final SitesList sites;
     @Autowired
-    private SiteRepository siteRepository;
+    private final SiteRepository siteRepository;
     @Autowired
-    private PageRepository pageRepository;
+    private final PageRepository pageRepository;
     @Autowired
-    private LemmaRepository lemmaRepository;
+    private final LemmaRepository lemmaRepository;
     @Autowired
-    private IndexRepository indexRepository;
+    private final IndexRepository indexRepository;
     static boolean isInterrupted;
     private final GetResponse getResponse = new GetResponse();
     private final PostResponse postResponse = new PostResponse();
@@ -51,11 +51,9 @@ public class IndexingServiceImpl implements IndexingService {
     public ResponseEntity<GetResponse> startIndexing() {
         sitesList = sites.getSites();
         List<Parser> parserList = new ArrayList<>();
-        if (fjp != null) {
-            if (fjp.getActiveThreadCount() > 0) {
+        if (checkFjp()) {
                 getResponse.setResult(false);
                 getResponse.setError("Индексация уже запущена");
-            }
         } else {
             fjp = new ForkJoinPool(Runtime.getRuntime().availableProcessors());
             for (Site site : sitesList) {
@@ -101,8 +99,7 @@ public class IndexingServiceImpl implements IndexingService {
     @Override
     public ResponseEntity<GetResponse> stopIndexing() throws InterruptedException {
         sitesList = sites.getSites();
-        if (fjp != null) {
-            if (fjp.getActiveThreadCount() != 0) {
+        if (checkFjp()) {
                 isInterrupted = true;
                 Thread.sleep(2000);
                 fjp.shutdownNow();
@@ -122,7 +119,6 @@ public class IndexingServiceImpl implements IndexingService {
 //            GetResponse response = new GetResponse();
                 getResponse.setResult(true);
                 getResponse.setError("");
-            }
         } else {
 //            GetResponse response = new GetResponse();
             getResponse.setResult(false);
@@ -164,5 +160,13 @@ public class IndexingServiceImpl implements IndexingService {
             }
         }
         return new ResponseEntity<>(postResponse, HttpStatus.OK);
+    }
+    public boolean checkFjp() {
+        if (fjp != null) {
+            if (fjp.getActiveThreadCount() > 0) {
+                return true;
+            }
+        }
+        return false;
     }
 }

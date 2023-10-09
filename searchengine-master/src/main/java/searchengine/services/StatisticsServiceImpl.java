@@ -1,6 +1,7 @@
 package searchengine.services;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import searchengine.config.Site;
 import searchengine.config.SitesList;
@@ -8,30 +9,39 @@ import searchengine.dto.statistics.DetailedStatisticsItem;
 import searchengine.dto.statistics.StatisticsData;
 import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.dto.statistics.TotalStatistics;
+import searchengine.model.repositorys.IndexRepository;
+import searchengine.model.repositorys.LemmaRepository;
+import searchengine.model.repositorys.PageRepository;
+import searchengine.model.repositorys.SiteRepository;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 
 @Service
 @RequiredArgsConstructor
 public class StatisticsServiceImpl implements StatisticsService {
 
-    private final Random random = new Random();
+    @Autowired
+    private final IndexingService indexingService;
+    @Autowired
+    private final SiteRepository siteRepository;
+    @Autowired
+    private final PageRepository pageRepository;
+    @Autowired
+    private final LemmaRepository lemmaRepository;
+    @Autowired
+    private final IndexRepository indexRepository;
+//    private final Random random = new Random();
     private final SitesList sites;
 
     @Override
     public StatisticsResponse getStatistics() {
-        String[] statuses = { "INDEXED", "FAILED", "INDEXING" };
-        String[] errors = {
-                "Ошибка индексации: главная страница сайта не доступна",
-                "Ошибка индексации: сайт не доступен",
-                ""
-        };
 
         TotalStatistics total = new TotalStatistics();
         total.setSites(sites.getSites().size());
-        total.setIndexing(true);
+        total.setIndexing(indexingService.checkFjp());
 
         List<DetailedStatisticsItem> detailed = new ArrayList<>();
         List<Site> sitesList = sites.getSites();
@@ -40,14 +50,19 @@ public class StatisticsServiceImpl implements StatisticsService {
             DetailedStatisticsItem item = new DetailedStatisticsItem();
             item.setName(site.getName());
             item.setUrl(site.getUrl());
-            int pages = random.nextInt(1_000);
-            int lemmas = pages * random.nextInt(1_000);
+            Optional<searchengine.model.Site> modelSiteOpt = siteRepository.findSiteByName(item.getName());
+            if (modelSiteOpt.isEmpty()) {
+                continue;
+            }
+            int pages = pageRepository.findAllBySite(modelSiteOpt.get()).size();
+            int lemmas = lemmaRepository.findAllBySite(modelSiteOpt.get()).size();
             item.setPages(pages);
             item.setLemmas(lemmas);
-            item.setStatus(statuses[i % 3]);
-            item.setError(errors[i % 3]);
-            item.setStatusTime(System.currentTimeMillis() -
-                    (random.nextInt(10_000)));
+            item.setStatus(modelSiteOpt.get().getStatus().toString());
+            if (!modelSiteOpt.get().getLastError().isEmpty()) {
+                item.setError(modelSiteOpt.get().getLastError());
+            }
+            item.setStatusTime(modelSiteOpt.get().getStatusTime());
             total.setPages(total.getPages() + pages);
             total.setLemmas(total.getLemmas() + lemmas);
             detailed.add(item);

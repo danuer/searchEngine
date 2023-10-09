@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 import searchengine.model.Lemma;
 import searchengine.model.Site;
 
+import java.util.List;
 import java.util.Set;
 
 @Repository
@@ -16,4 +17,5 @@ public interface LemmaRepository extends CrudRepository<Lemma, Integer> {
     @Query(value = "SELECT l FROM Lemma l where l.lemma =:lemma and l.site =:site")
     Lemma searchByLemmaAndSite(String lemma, Site site);
     Set<Lemma> findAllByLemma(String lemma);
+    List<Lemma> findAllBySite(Site site);
 }

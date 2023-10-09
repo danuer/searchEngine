@@ -13,7 +13,7 @@ import java.util.Optional;
 @Transactional
 public interface PageRepository extends CrudRepository<Page, Integer> {
     List<Integer> findAllByPathAndSite(String path, Site site);
-    Page searchAllBySite(Site site);
+    List<Page> findAllBySite(Site site);
     Optional<Page> findByPath(String path);
 
 
