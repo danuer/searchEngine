@@ -1,6 +1,7 @@
 package searchengine.services;
 
 import lombok.RequiredArgsConstructor;
+import lombok.Value;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
@@ -8,8 +9,11 @@ import searchengine.config.Site;
 import searchengine.config.SitesList;
 import searchengine.dto.response.SearchResponse;
 import searchengine.dto.response.SiteData;
+import searchengine.dto.search.SearchIndex;
+import searchengine.dto.search.SearchPageIndex;
 import searchengine.model.Index;
 import searchengine.model.Lemma;
+import searchengine.model.Page;
 import searchengine.model.repositorys.IndexRepository;
 import searchengine.model.repositorys.LemmaRepository;
 import searchengine.model.repositorys.PageRepository;
@@ -54,28 +58,70 @@ public class SearchServiceImpl implements SearchService {
         lemmaMapByFreq.entrySet()
                 .stream()
                 .sorted(Map.Entry.comparingByValue(Comparator.naturalOrder()))
-                .forEach( entry -> lemmaSortedList.add(entry.getKey()));
+                .forEach(entry -> lemmaSortedList.add(entry.getKey()));
         List<Index> indexList = indexRepository.findAllByLemma(lemmaSortedList.get(0));
-        indexList.forEach(System.out::println);
-        List<Index> resultIndexList = new ArrayList<>();
+        List<Integer> pageIdList = new ArrayList<>();
+        indexList.forEach(index -> {
+            pageIdList.add(index.getPage().getId());
+        });
+        Set<Integer> resultPageIdList = new HashSet<>();
+        List<SearchIndex> searchIndexList = new ArrayList<>();
         for (Lemma lemma : lemmaSortedList) {
             List<Index> newIndexList = indexRepository.findAllByLemma(lemma);
-            for (Index i : newIndexList) {
-                if (indexList.contains(i)) {
-                    resultIndexList.add(i);
+            List<Integer> newPageIdList = new ArrayList<>();
+            newIndexList.forEach(index -> {
+                newPageIdList.add(index.getPage().getId());
+
+            });
+            for (Integer p : newPageIdList) {
+                if (pageIdList.contains(p)) {
+                    resultPageIdList.add(p);
+                    SearchIndex searchIndex = new SearchIndex();
+                    searchIndex.setLemma(lemma);
+                    searchIndex.setPageId(p);
+                    searchIndexList.add(searchIndex);
                 }
             }
         }
-        resultIndexList.forEach(System.out::println);
 
-        for (Index index : resultIndexList) {
-            float rank = index.getRank();
+        for (SearchIndex searchIndex : searchIndexList) {
+            searchIndex.setIndex(indexRepository.findByLemmaAndPage_Id(searchIndex.getLemma(), searchIndex.getPageId()));
+            float rank = searchIndex.getIndex().getRank();
+            searchIndex.setRank(rank);
         }
+        for (SearchIndex si : searchIndexList) {
+            System.out.println(si.getPageId() + "-" + si.getLemma().getLemma() + "-" + si.getRank() + "-" + si.getIndex());
+        }
+        Map<Integer, SearchPageIndex> searchPageIndexMap = new HashMap();
+        for (Integer pageId : resultPageIdList) {
+            Map<Lemma, Float>  lemmaRankMap = new HashMap<>();
+            SearchPageIndex spi = new SearchPageIndex();
+            float absRelevance = 0;
+            for (SearchIndex si : searchIndexList) {
+                if (Objects.equals(si.getPageId(), pageId)) {
+                    spi.setPage(si.getIndex().getPage());
+                    lemmaRankMap.put(si.getLemma(), si.getRank());
+                    absRelevance += si.getRank();
+                }
+            }
+            spi.setLemmaRankMap(lemmaRankMap);
+            spi.setAbsRelevance(absRelevance);
+            searchPageIndexMap.put(pageId, spi);
+        }
+        searchPageIndexMap.entrySet().forEach(System.out::println);
+        float maxAbsRelevance = 0;
+        for (Map.Entry<Integer, SearchPageIndex> entry : searchPageIndexMap.entrySet()) {
+            SearchPageIndex spi = entry.getValue();
+            if (maxAbsRelevance <= spi.getAbsRelevance()) {
+                maxAbsRelevance = spi.getAbsRelevance();
+            }
+        }
+        for (Map.Entry<Integer, SearchPageIndex> entry : searchPageIndexMap.entrySet()) {
+            SearchPageIndex spi = entry.getValue();
+            spi.setRelRelevance(spi.getAbsRelevance() / maxAbsRelevance);
+        }
+        searchPageIndexMap.entrySet().forEach(System.out::println);
 
-//        -> {
-//
-//                    List<Integer> pageList = indexRepository.findAllByLemma(lemmaIntegerEntry.getKey());
-//                });
 
 
         searchResponse.setResult(true);

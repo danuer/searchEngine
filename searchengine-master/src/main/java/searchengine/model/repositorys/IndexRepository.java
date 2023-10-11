@@ -14,7 +14,9 @@ import java.util.List;
 public interface IndexRepository extends CrudRepository<Index, Integer> {
 
     Index findByLemmaAndPage(Lemma lemma, Page page);
+    Index findByLemmaAndPage_Id(Lemma lemma, Integer pageId);
 
     List<Index> findAllByLemma(Lemma lemma);
+
 
 }
