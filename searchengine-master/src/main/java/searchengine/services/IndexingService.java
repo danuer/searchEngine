@@ -3,13 +3,14 @@ package searchengine.services;
 import org.springframework.http.ResponseEntity;
 import searchengine.dto.response.GetResponse;
 import searchengine.dto.response.PostResponse;
+import searchengine.dto.response.SearchResponse;
 
 import java.io.IOException;
 
 public interface IndexingService {
 
-    ResponseEntity<GetResponse> startIndexing();
-    ResponseEntity<GetResponse> stopIndexing() throws InterruptedException;
-    ResponseEntity<PostResponse> indexingPage(String url) throws IOException;
-    boolean checkFjp();
+    GetResponse startIndexing();
+    GetResponse stopIndexing() throws InterruptedException;
+    PostResponse indexingPage(String url) throws IOException;
+
 }

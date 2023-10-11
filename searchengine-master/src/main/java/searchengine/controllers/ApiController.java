@@ -1,18 +1,17 @@
 package searchengine.controllers;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.Nullable;
 import org.springframework.web.bind.annotation.*;
 import searchengine.dto.response.GetResponse;
 import searchengine.dto.response.PostResponse;
 import searchengine.dto.response.SearchResponse;
-import searchengine.dto.response.SiteData;
 import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.services.IndexingService;
+import searchengine.services.SearchService;
 import searchengine.services.StatisticsService;
 
 import java.io.IOException;
-import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/api")
@@ -20,10 +19,12 @@ public class ApiController {
 
     private final StatisticsService statisticsService;
     private final IndexingService indexingService;
+    private final SearchService searchService;
 
-    public ApiController(StatisticsService statisticsService, IndexingService indexingService) {
+    public ApiController(StatisticsService statisticsService, IndexingService indexingService, SearchService searchService) {
         this.statisticsService = statisticsService;
         this.indexingService = indexingService;
+        this.searchService = searchService;
     }
 
     @GetMapping("/statistics")
@@ -33,38 +34,25 @@ public class ApiController {
 
     @GetMapping("/startIndexing")
     public ResponseEntity<GetResponse> startIndexing() throws IOException, InterruptedException {
-        return indexingService.startIndexing();
+        return ResponseEntity.ok(indexingService.startIndexing());
     }
 
     @GetMapping("/stopIndexing")
     public ResponseEntity<GetResponse> stopIndexing() throws InterruptedException {
-        return indexingService.stopIndexing();
+        return ResponseEntity.ok(indexingService.stopIndexing());
     }
 
     @PostMapping("/{indexPage}")
-    public ResponseEntity<PostResponse> addPage(@RequestParam String url) throws IOException {
-
-        return indexingService.indexingPage(url);
+    public ResponseEntity<PostResponse> addPage(@PathVariable String indexPage) throws IOException {
+        return ResponseEntity.ok(indexingService.indexingPage(indexPage));
     }
 
     @GetMapping("/{search}")
-    public ResponseEntity<SearchResponse> search(@PathVariable String search ) {
-        SearchResponse response = new SearchResponse();
-        response.setResult(true);
-        response.setError("");
-        response.setCount(2);
-        SiteData data = new SiteData();
-        data.setSite("http://www.site.com");
-        data.setSiteName("Имя сайта");
-        data.setUri("/path/to/page/6784");
-        data.setTitle("Заголовок страницы, которую выводим");
-        data.setSnippet("Фрагмент текста, в котором найдены совпадения," +
-                " <b>выделенные жирным</b>, в формате HTML");
-        data.setRelevance(0.93362);
-        ArrayList<SiteData> list = new ArrayList<>();
-        list.add(data);
-        response.setData(list);
-        return new ResponseEntity<>(response, HttpStatus.OK);
+    public ResponseEntity<SearchResponse> search(@RequestParam("query") String query
+                                                , @RequestParam("offset") int offset
+                                                , @RequestParam("limit") int limit
+                                                , @RequestParam("site") @Nullable String siteUrl) throws IOException {
+        return ResponseEntity.ok(searchService.search(query, offset, limit, siteUrl));
     }
 
 }

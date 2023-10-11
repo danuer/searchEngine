@@ -10,6 +10,8 @@ import searchengine.config.Site;
 import searchengine.config.SitesList;
 import searchengine.dto.response.GetResponse;
 import searchengine.dto.response.PostResponse;
+import searchengine.dto.response.SearchResponse;
+import searchengine.dto.response.SiteData;
 import searchengine.model.*;
 import searchengine.model.repositorys.IndexRepository;
 import searchengine.model.repositorys.LemmaRepository;
@@ -42,13 +44,12 @@ public class IndexingServiceImpl implements IndexingService {
     @Autowired
     private final IndexRepository indexRepository;
     static boolean isInterrupted;
-    private final GetResponse getResponse = new GetResponse();
-    private final PostResponse postResponse = new PostResponse();
     private List<Site> sitesList;
     private ForkJoinPool fjp;
 
     @Override
-    public ResponseEntity<GetResponse> startIndexing() {
+    public GetResponse startIndexing() {
+        GetResponse getResponse = new GetResponse();
         sitesList = sites.getSites();
         List<Parser> parserList = new ArrayList<>();
         if (checkFjp()) {
@@ -70,7 +71,7 @@ public class IndexingServiceImpl implements IndexingService {
             getResponse.setResult(true);
             getResponse.setError("");
         }
-        return new ResponseEntity<>(getResponse, HttpStatus.OK);
+        return getResponse;
     }
 
     private void cleanSiteRepository(String name) {
@@ -97,7 +98,8 @@ public class IndexingServiceImpl implements IndexingService {
     }
 
     @Override
-    public ResponseEntity<GetResponse> stopIndexing() throws InterruptedException {
+    public GetResponse stopIndexing() throws InterruptedException {
+        GetResponse getResponse = new GetResponse();
         sitesList = sites.getSites();
         if (checkFjp()) {
                 isInterrupted = true;
@@ -116,19 +118,18 @@ public class IndexingServiceImpl implements IndexingService {
                     });
 
                 }
-//            GetResponse response = new GetResponse();
                 getResponse.setResult(true);
                 getResponse.setError("");
         } else {
-//            GetResponse response = new GetResponse();
             getResponse.setResult(false);
             getResponse.setError("Индексация не запущена");
         }
-        return new ResponseEntity<>(getResponse, HttpStatus.OK);
+        return getResponse;
     }
 
     @Override
-    public ResponseEntity<PostResponse> indexingPage(String url) throws IOException {
+    public PostResponse indexingPage(String url) throws IOException {
+        PostResponse postResponse = new PostResponse();
         sitesList = sites.getSites();
         postResponse.setResult(false);
         postResponse.setError("Данная страница находится за пределами сайтов, " +
@@ -159,9 +160,10 @@ public class IndexingServiceImpl implements IndexingService {
                 }
             }
         }
-        return new ResponseEntity<>(postResponse, HttpStatus.OK);
+        return postResponse;
     }
-    public boolean checkFjp() {
+
+    private boolean checkFjp() {
         if (fjp != null) {
             if (fjp.getActiveThreadCount() > 0) {
                 return true;

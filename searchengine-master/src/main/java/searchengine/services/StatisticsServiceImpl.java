@@ -41,7 +41,7 @@ public class StatisticsServiceImpl implements StatisticsService {
 
         TotalStatistics total = new TotalStatistics();
         total.setSites(sites.getSites().size());
-        total.setIndexing(indexingService.checkFjp());
+        total.setIndexing(true);
 
         List<DetailedStatisticsItem> detailed = new ArrayList<>();
         List<Site> sitesList = sites.getSites();
@@ -50,7 +50,7 @@ public class StatisticsServiceImpl implements StatisticsService {
             DetailedStatisticsItem item = new DetailedStatisticsItem();
             item.setName(site.getName());
             item.setUrl(site.getUrl());
-            Optional<searchengine.model.Site> modelSiteOpt = siteRepository.findSiteByName(item.getName());
+            Optional<searchengine.model.Site> modelSiteOpt = siteRepository.findSiteByName(site.getName());
             if (modelSiteOpt.isEmpty()) {
                 continue;
             }
@@ -59,8 +59,10 @@ public class StatisticsServiceImpl implements StatisticsService {
             item.setPages(pages);
             item.setLemmas(lemmas);
             item.setStatus(modelSiteOpt.get().getStatus().toString());
-            if (!modelSiteOpt.get().getLastError().isEmpty()) {
+            if (modelSiteOpt.get().getLastError() != null) {
                 item.setError(modelSiteOpt.get().getLastError());
+            } else {
+                item.setError("");
             }
             item.setStatusTime(modelSiteOpt.get().getStatusTime());
             total.setPages(total.getPages() + pages);

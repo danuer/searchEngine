@@ -14,7 +14,7 @@ public class LemmaFinderServiceImpl implements LemmaFinderService {
 
     private final LuceneMorphology luceneMorphology;
     private static final String WORD_TYPE_REGEX = "\\W\\w&&[^а-яА-Я\\s]";
-    private static final String[] particlesNames = new String[]{"МЕЖД", "ПРЕДЛ", "СОЮЗ"};
+    private static final String[] particlesNames = new String[]{"МЕЖД", "ПРЕДЛ", "СОЮЗ", "ЧАСТ"};
 
 //    public static LemmaFinderImpl getInstance() throws IOException {
 //        LuceneMorphology morphology= new RussianLuceneMorphology();
