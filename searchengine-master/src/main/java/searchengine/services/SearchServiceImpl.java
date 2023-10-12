@@ -2,6 +2,8 @@ package searchengine.services;
 
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
@@ -94,7 +96,7 @@ public class SearchServiceImpl implements SearchService {
         }
         Map<Integer, SearchPageIndex> searchPageIndexMap = new HashMap();
         for (Integer pageId : resultPageIdList) {
-            Map<Lemma, Float>  lemmaRankMap = new HashMap<>();
+            Map<Lemma, Float> lemmaRankMap = new HashMap<>();
             SearchPageIndex spi = new SearchPageIndex();
             float absRelevance = 0;
             for (SearchIndex si : searchIndexList) {
@@ -122,21 +124,35 @@ public class SearchServiceImpl implements SearchService {
         }
         searchPageIndexMap.entrySet().forEach(System.out::println);
 
+        Map<Float, SearchPageIndex> sortedByRelSPIMap = new TreeMap<>();
+        for (Map.Entry<Integer, SearchPageIndex> entry : searchPageIndexMap.entrySet()) {
+            SearchPageIndex spi = entry.getValue();
+            float rel = spi.getRelRelevance();
+            sortedByRelSPIMap.put(rel, spi);
+        }
 
+        List<SearchPageIndex> sortedByRelSPIList = new ArrayList<>();
+        for (Map.Entry<Float, SearchPageIndex> entry : sortedByRelSPIMap.entrySet()) {
+            SearchPageIndex spi = entry.getValue();
+            sortedByRelSPIList.add(spi);
+        }
 
         searchResponse.setResult(true);
         searchResponse.setError("");
-        searchResponse.setCount(2);
-        SiteData data = new SiteData();
-        data.setSite("http://www.site.com");
-        data.setSiteName("Имя сайта");
-        data.setUri("/path/to/page/6784");
-        data.setTitle("Заголовок страницы, которую выводим");
-        data.setSnippet("Фрагмент текста, в котором найдены совпадения," +
-                " <b>выделенные жирным</b>, в формате HTML");
-        data.setRelevance(0.93362);
+        searchResponse.setCount(sortedByRelSPIList.size());
         ArrayList<SiteData> list = new ArrayList<>();
-        list.add(data);
+        for (SearchPageIndex spi : sortedByRelSPIList) {
+            SiteData data = new SiteData();
+            data.setSite(spi.getPage().getSite().getUrl());
+            data.setSiteName(spi.getPage().getSite().getName());
+            data.setUri(spi.getPage().getPath());
+            Document content = Jsoup.parse(spi.getPage().getContent());
+            data.setTitle(content.title());
+            data.setSnippet("Фрагмент текста, в котором найдены совпадения," +
+                    " <b>выделенные жирным</b>, в формате HTML");
+            data.setRelevance(spi.getRelRelevance());
+            list.add(data);
+        }
         searchResponse.setData(list);
         return searchResponse;
     }
