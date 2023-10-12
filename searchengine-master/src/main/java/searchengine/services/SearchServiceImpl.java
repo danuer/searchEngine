@@ -54,14 +54,25 @@ public class SearchServiceImpl implements SearchService {
         }
         Map<Lemma, Integer> lemmaMapByFreq = new HashMap<>();
         for (Lemma lemma : lemmaList) {
-            lemmaMapByFreq.put(lemma, lemma.getFrequency());
+            if (lemma.getFrequency() <= 300) {
+                lemmaMapByFreq.put(lemma, lemma.getFrequency());
+            } else {
+                searchResponse.setError("Слишком большое кол-во страниц");
+            }
         }
         List<Lemma> lemmaSortedList = new ArrayList<>();
         lemmaMapByFreq.entrySet()
                 .stream()
                 .sorted(Map.Entry.comparingByValue(Comparator.naturalOrder()))
                 .forEach(entry -> lemmaSortedList.add(entry.getKey()));
-        List<Index> indexList = indexRepository.findAllByLemma(lemmaSortedList.get(0));
+        List<Index> indexList = new ArrayList<>();
+        if (!lemmaSortedList.isEmpty()) {
+            indexList = indexRepository.findAllByLemma(lemmaSortedList.get(0));
+        } else {
+            searchResponse.setResult(false);
+            return searchResponse;
+        }
+
         List<Integer> pageIdList = new ArrayList<>();
         indexList.forEach(index -> {
             pageIdList.add(index.getPage().getId());
@@ -136,7 +147,10 @@ public class SearchServiceImpl implements SearchService {
             SearchPageIndex spi = entry.getValue();
             sortedByRelSPIList.add(spi);
         }
-
+        if (searchResponse.getError() != null) {
+            searchResponse.setResult(false);
+            return searchResponse;
+        }
         searchResponse.setResult(true);
         searchResponse.setError("");
         searchResponse.setCount(sortedByRelSPIList.size());
@@ -148,8 +162,7 @@ public class SearchServiceImpl implements SearchService {
             data.setUri(spi.getPage().getPath());
             Document content = Jsoup.parse(spi.getPage().getContent());
             data.setTitle(content.title());
-            data.setSnippet("Фрагмент текста, в котором найдены совпадения," +
-                    " <b>выделенные жирным</b>, в формате HTML");
+            data.setSnippet("<b>" + spi.getLemmaRankMap().toString() + "</b>");
             data.setRelevance(spi.getRelRelevance());
             list.add(data);
         }
