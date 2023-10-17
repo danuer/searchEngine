@@ -31,14 +31,11 @@ import java.util.stream.Stream;
 public class SearchServiceImpl implements SearchService {
 
     private final LemmaFinderService lemmaFinderService;
+    private final SnippetService snippetService;
     private final SitesList sites;
-    @Autowired
     private final SiteRepository siteRepository;
-    @Autowired
     private final PageRepository pageRepository;
-    @Autowired
     private final LemmaRepository lemmaRepository;
-    @Autowired
     private final IndexRepository indexRepository;
 
     @Override
@@ -54,7 +51,7 @@ public class SearchServiceImpl implements SearchService {
         }
         Map<Lemma, Integer> lemmaMapByFreq = new HashMap<>();
         for (Lemma lemma : lemmaList) {
-            if (lemma.getFrequency() <= 300) {
+            if (lemma.getFrequency() <= 500) {
                 lemmaMapByFreq.put(lemma, lemma.getFrequency());
             } else {
                 searchResponse.setError("Слишком большое кол-во страниц");
@@ -102,9 +99,9 @@ public class SearchServiceImpl implements SearchService {
             float rank = searchIndex.getIndex().getRank();
             searchIndex.setRank(rank);
         }
-        for (SearchIndex si : searchIndexList) {
-            System.out.println(si.getPageId() + "-" + si.getLemma().getLemma() + "-" + si.getRank() + "-" + si.getIndex());
-        }
+//        for (SearchIndex si : searchIndexList) {
+//            System.out.println(si.getPageId() + "-" + si.getLemma().getLemma() + "-" + si.getRank() + "-" + si.getIndex());
+//        }
         Map<Integer, SearchPageIndex> searchPageIndexMap = new HashMap();
         for (Integer pageId : resultPageIdList) {
             Map<Lemma, Float> lemmaRankMap = new HashMap<>();
@@ -121,7 +118,7 @@ public class SearchServiceImpl implements SearchService {
             spi.setAbsRelevance(absRelevance);
             searchPageIndexMap.put(pageId, spi);
         }
-        searchPageIndexMap.entrySet().forEach(System.out::println);
+//        searchPageIndexMap.entrySet().forEach(System.out::println);
         float maxAbsRelevance = 0;
         for (Map.Entry<Integer, SearchPageIndex> entry : searchPageIndexMap.entrySet()) {
             SearchPageIndex spi = entry.getValue();
@@ -133,8 +130,34 @@ public class SearchServiceImpl implements SearchService {
             SearchPageIndex spi = entry.getValue();
             spi.setRelRelevance(spi.getAbsRelevance() / maxAbsRelevance);
         }
-        searchPageIndexMap.entrySet().forEach(System.out::println);
+//        searchPageIndexMap.entrySet().forEach(System.out::println);
 
+        List<SearchPageIndex> sortedByRelSPIList = getSortedByRelSPIList(searchPageIndexMap);
+        if (searchResponse.getError() != null) {
+            searchResponse.setResult(false);
+            return searchResponse;
+        }
+        System.out.println(sortedByRelSPIList.size());
+        searchResponse.setResult(true);
+        searchResponse.setError("");
+        searchResponse.setCount(sortedByRelSPIList.size());
+        ArrayList<SiteData> list = new ArrayList<>();
+        for (SearchPageIndex spi : sortedByRelSPIList) {
+            SiteData data = new SiteData();
+            data.setSite(spi.getPage().getSite().getUrl());
+            data.setSiteName(spi.getPage().getSite().getName());
+            data.setUri(spi.getPage().getPath());
+            Document content = Jsoup.parse(spi.getPage().getContent());
+            data.setTitle(content.title());
+            data.setSnippet(snippetService.getSnippet(query, spi));
+            data.setRelevance(spi.getRelRelevance());
+            list.add(data);
+        }
+        searchResponse.setData(list);
+        return searchResponse;
+    }
+
+    private static List<SearchPageIndex> getSortedByRelSPIList(Map<Integer, SearchPageIndex> searchPageIndexMap) {
         Map<Float, SearchPageIndex> sortedByRelSPIMap = new TreeMap<>();
         for (Map.Entry<Integer, SearchPageIndex> entry : searchPageIndexMap.entrySet()) {
             SearchPageIndex spi = entry.getValue();
@@ -147,27 +170,7 @@ public class SearchServiceImpl implements SearchService {
             SearchPageIndex spi = entry.getValue();
             sortedByRelSPIList.add(spi);
         }
-        if (searchResponse.getError() != null) {
-            searchResponse.setResult(false);
-            return searchResponse;
-        }
-        searchResponse.setResult(true);
-        searchResponse.setError("");
-        searchResponse.setCount(sortedByRelSPIList.size());
-        ArrayList<SiteData> list = new ArrayList<>();
-        for (SearchPageIndex spi : sortedByRelSPIList) {
-            SiteData data = new SiteData();
-            data.setSite(spi.getPage().getSite().getUrl());
-            data.setSiteName(spi.getPage().getSite().getName());
-            data.setUri(spi.getPage().getPath());
-            Document content = Jsoup.parse(spi.getPage().getContent());
-            data.setTitle(content.title());
-            data.setSnippet("<b>" + spi.getLemmaRankMap().toString() + "</b>");
-            data.setRelevance(spi.getRelRelevance());
-            list.add(data);
-        }
-        searchResponse.setData(list);
-        return searchResponse;
+        return sortedByRelSPIList;
     }
 
     private List<Lemma> searchBySite(String siteUrl, Set<String> lemmas) {
