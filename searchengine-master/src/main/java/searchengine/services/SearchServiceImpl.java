@@ -1,10 +1,8 @@
 package searchengine.services;
 
 import lombok.RequiredArgsConstructor;
-import lombok.Value;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 import searchengine.config.Site;
@@ -15,7 +13,6 @@ import searchengine.dto.search.SearchIndex;
 import searchengine.dto.search.SearchPageIndex;
 import searchengine.model.Index;
 import searchengine.model.Lemma;
-import searchengine.model.Page;
 import searchengine.model.repositorys.IndexRepository;
 import searchengine.model.repositorys.LemmaRepository;
 import searchengine.model.repositorys.PageRepository;
@@ -23,8 +20,6 @@ import searchengine.model.repositorys.SiteRepository;
 
 import java.io.IOException;
 import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -51,7 +46,7 @@ public class SearchServiceImpl implements SearchService {
         }
         Map<Lemma, Integer> lemmaMapByFreq = new HashMap<>();
         for (Lemma lemma : lemmaList) {
-            if (lemma.getFrequency() <= 500) {
+            if (lemma.getFrequency() <= 5000) {
                 lemmaMapByFreq.put(lemma, lemma.getFrequency());
             } else {
                 searchResponse.setError("Слишком большое кол-во страниц");
@@ -62,7 +57,7 @@ public class SearchServiceImpl implements SearchService {
                 .stream()
                 .sorted(Map.Entry.comparingByValue(Comparator.naturalOrder()))
                 .forEach(entry -> lemmaSortedList.add(entry.getKey()));
-        List<Index> indexList = new ArrayList<>();
+        List<Index> indexList;
         if (!lemmaSortedList.isEmpty()) {
             indexList = indexRepository.findAllByLemma(lemmaSortedList.get(0));
         } else {
@@ -71,18 +66,13 @@ public class SearchServiceImpl implements SearchService {
         }
 
         List<Integer> pageIdList = new ArrayList<>();
-        indexList.forEach(index -> {
-            pageIdList.add(index.getPage().getId());
-        });
+        indexList.forEach(index -> pageIdList.add(index.getPage().getId()));
         Set<Integer> resultPageIdList = new HashSet<>();
         List<SearchIndex> searchIndexList = new ArrayList<>();
         for (Lemma lemma : lemmaSortedList) {
             List<Index> newIndexList = indexRepository.findAllByLemma(lemma);
             List<Integer> newPageIdList = new ArrayList<>();
-            newIndexList.forEach(index -> {
-                newPageIdList.add(index.getPage().getId());
-
-            });
+            newIndexList.forEach(index -> newPageIdList.add(index.getPage().getId()));
             for (Integer p : newPageIdList) {
                 if (pageIdList.contains(p)) {
                     resultPageIdList.add(p);
@@ -102,7 +92,7 @@ public class SearchServiceImpl implements SearchService {
 //        for (SearchIndex si : searchIndexList) {
 //            System.out.println(si.getPageId() + "-" + si.getLemma().getLemma() + "-" + si.getRank() + "-" + si.getIndex());
 //        }
-        Map<Integer, SearchPageIndex> searchPageIndexMap = new HashMap();
+        Map<Integer, SearchPageIndex> searchPageIndexMap = new HashMap<>();
         for (Integer pageId : resultPageIdList) {
             Map<Lemma, Float> lemmaRankMap = new HashMap<>();
             SearchPageIndex spi = new SearchPageIndex();
@@ -158,10 +148,10 @@ public class SearchServiceImpl implements SearchService {
     }
 
     private static List<SearchPageIndex> getSortedByRelSPIList(Map<Integer, SearchPageIndex> searchPageIndexMap) {
-        Map<Float, SearchPageIndex> sortedByRelSPIMap = new TreeMap<>();
+        Map<Float, SearchPageIndex> sortedByRelSPIMap = new TreeMap<>(Comparator.reverseOrder());
         for (Map.Entry<Integer, SearchPageIndex> entry : searchPageIndexMap.entrySet()) {
             SearchPageIndex spi = entry.getValue();
-            float rel = spi.getRelRelevance();
+            float rel = spi.getAbsRelevance();
             sortedByRelSPIMap.put(rel, spi);
         }
 
