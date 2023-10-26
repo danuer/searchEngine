@@ -1,7 +1,6 @@
 package searchengine.services;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import searchengine.config.SitesList;
 import searchengine.dto.search.SearchPageIndex;
@@ -49,6 +48,7 @@ public class SnippetServiceImpl implements SnippetService{
             contentLemmaMap.put(i, contentPartLemma);
         }
         System.out.println(contentLemmaMap.size());
+
         String snippet = "snippet: <b>";
         for (Map.Entry<Integer, String> entryQuery : queryLemmaMap.entrySet()) {
             for (Map.Entry<Integer, String> entryContent : contentLemmaMap.entrySet()) {

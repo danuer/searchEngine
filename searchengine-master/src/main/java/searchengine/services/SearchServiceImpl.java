@@ -1,5 +1,6 @@
 package searchengine.services;
 
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -15,7 +16,6 @@ import searchengine.model.Index;
 import searchengine.model.Lemma;
 import searchengine.model.repositorys.IndexRepository;
 import searchengine.model.repositorys.LemmaRepository;
-import searchengine.model.repositorys.PageRepository;
 import searchengine.model.repositorys.SiteRepository;
 
 import java.io.IOException;
@@ -29,7 +29,6 @@ public class SearchServiceImpl implements SearchService {
     private final SnippetService snippetService;
     private final SitesList sites;
     private final SiteRepository siteRepository;
-    private final PageRepository pageRepository;
     private final LemmaRepository lemmaRepository;
     private final IndexRepository indexRepository;
 
