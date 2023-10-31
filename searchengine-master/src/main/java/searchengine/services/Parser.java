@@ -166,7 +166,7 @@ public class Parser extends RecursiveTask<Set<String>> {
                 page.setPath(url.substring(matcher.end()));
             }
             page.setSite(siteRepository.findSiteByUrl(rootUrl));
-            page.setContent(doc.html());
+            page.setContent(doc.text());
             savedPage = pageRepository.save(page);
             Site site = savedPage.getSite();
             site.setStatusTime(System.currentTimeMillis());

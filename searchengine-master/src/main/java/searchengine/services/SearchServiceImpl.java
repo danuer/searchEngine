@@ -1,6 +1,5 @@
 package searchengine.services;
 
-import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -45,7 +44,7 @@ public class SearchServiceImpl implements SearchService {
         }
         Map<Lemma, Integer> lemmaMapByFreq = new HashMap<>();
         for (Lemma lemma : lemmaList) {
-            if (lemma.getFrequency() <= 5000) {
+            if (lemma.getFrequency() <= 500) {
                 lemmaMapByFreq.put(lemma, lemma.getFrequency());
             } else {
                 searchResponse.setError("Слишком большое кол-во страниц");
