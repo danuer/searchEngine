@@ -13,6 +13,7 @@ import searchengine.dto.search.SearchIndex;
 import searchengine.dto.search.SearchPageIndex;
 import searchengine.model.Index;
 import searchengine.model.Lemma;
+import searchengine.model.SiteEntity;
 import searchengine.model.repositorys.IndexRepository;
 import searchengine.model.repositorys.LemmaRepository;
 import searchengine.model.repositorys.SiteRepository;
@@ -35,6 +36,8 @@ public class SearchServiceImpl implements SearchService {
     public SearchResponse search(String query, int offset, int limit, @Nullable String siteUrl) throws IOException {
         SearchResponse searchResponse = new SearchResponse();
         List<Lemma> lemmaList;
+        List<Index> indexList;
+        List<Lemma> lemmaSortedList = new ArrayList<>();
         List<Site> sitesList = sites.getSites();
         Set<String> lemmas = lemmaFinderService.getLemmaSet(query);
         if (siteUrl != null) {
@@ -42,27 +45,29 @@ public class SearchServiceImpl implements SearchService {
         } else {
             lemmaList = searchAll(sitesList, lemmas);
         }
-        Map<Lemma, Integer> lemmaMapByFreq = new HashMap<>();
-        for (Lemma lemma : lemmaList) {
-            if (lemma.getFrequency() <= 500) {
-                lemmaMapByFreq.put(lemma, lemma.getFrequency());
-            } else {
-                searchResponse.setError("Слишком большое кол-во страниц");
+        if (!lemmaList.isEmpty()) {
+            Map<Lemma, Integer> lemmaMapByFreq = new HashMap<>();
+            for (Lemma lemma : lemmaList) {
+                if (lemma.getFrequency() <= 500) {
+                    lemmaMapByFreq.put(lemma, lemma.getFrequency());
+                } else {
+                    searchResponse.setError("Слишком большое кол-во страниц");
+                }
             }
-        }
-        List<Lemma> lemmaSortedList = new ArrayList<>();
-        lemmaMapByFreq.entrySet()
-                .stream()
-                .sorted(Map.Entry.comparingByValue(Comparator.naturalOrder()))
-                .forEach(entry -> lemmaSortedList.add(entry.getKey()));
-        List<Index> indexList;
-        if (!lemmaSortedList.isEmpty()) {
+            if (lemmaMapByFreq.isEmpty()) {
+                searchResponse.setResult(false);
+                return searchResponse;
+            }
+            lemmaMapByFreq.entrySet()
+                    .stream()
+                    .sorted(Map.Entry.comparingByValue(Comparator.naturalOrder()))
+                    .forEach(entry -> lemmaSortedList.add(entry.getKey()));
             indexList = indexRepository.findAllByLemma(lemmaSortedList.get(0));
         } else {
             searchResponse.setResult(false);
+            searchResponse.setError("По данному запросу ничего не найдено");
             return searchResponse;
         }
-
         List<Integer> pageIdList = new ArrayList<>();
         indexList.forEach(index -> pageIdList.add(index.getPage().getId()));
         Set<Integer> resultPageIdList = new HashSet<>();
@@ -81,15 +86,11 @@ public class SearchServiceImpl implements SearchService {
                 }
             }
         }
-
         for (SearchIndex searchIndex : searchIndexList) {
             searchIndex.setIndex(indexRepository.findByLemmaAndPage_Id(searchIndex.getLemma(), searchIndex.getPageId()));
             float rank = searchIndex.getIndex().getRank();
             searchIndex.setRank(rank);
         }
-//        for (SearchIndex si : searchIndexList) {
-//            System.out.println(si.getPageId() + "-" + si.getLemma().getLemma() + "-" + si.getRank() + "-" + si.getIndex());
-//        }
         Map<Integer, SearchPageIndex> searchPageIndexMap = new HashMap<>();
         for (Integer pageId : resultPageIdList) {
             Map<Lemma, Float> lemmaRankMap = new HashMap<>();
@@ -132,8 +133,8 @@ public class SearchServiceImpl implements SearchService {
         ArrayList<SiteData> list = new ArrayList<>();
         for (SearchPageIndex spi : sortedByRelSPIList) {
             SiteData data = new SiteData();
-            data.setSite(spi.getPage().getSite().getUrl());
-            data.setSiteName(spi.getPage().getSite().getName());
+            data.setSite(spi.getPage().getSiteEntity().getUrl());
+            data.setSiteName(spi.getPage().getSiteEntity().getName());
             data.setUri(spi.getPage().getPath());
             Document content = Jsoup.parse(spi.getPage().getContent());
             data.setTitle(content.title());
@@ -162,10 +163,10 @@ public class SearchServiceImpl implements SearchService {
     }
 
     private List<Lemma> searchBySite(String siteUrl, Set<String> lemmas) {
-        searchengine.model.Site site = siteRepository.findSiteByUrl(siteUrl);
+        SiteEntity siteEntity = siteRepository.findSiteByUrl(siteUrl);
         List<Lemma> lemmaList = new ArrayList<>();
         for (String lemma : lemmas) {
-            Optional<Lemma> lemmaOpt = lemmaRepository.findByLemmaAndSite(lemma, site);
+            Optional<Lemma> lemmaOpt = lemmaRepository.findByLemmaAndSiteEntity(lemma, siteEntity);
             lemmaOpt.ifPresent(lemmaList::add);
         }
         for (Lemma lemmaEntity : lemmaList) {

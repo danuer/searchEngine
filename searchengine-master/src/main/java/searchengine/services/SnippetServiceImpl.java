@@ -1,16 +1,16 @@
 package searchengine.services;
 
 import lombok.RequiredArgsConstructor;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import org.springframework.stereotype.Service;
-import searchengine.config.SitesList;
 import searchengine.dto.search.SearchPageIndex;
-import searchengine.model.repositorys.IndexRepository;
-import searchengine.model.repositorys.LemmaRepository;
-import searchengine.model.repositorys.PageRepository;
-import searchengine.model.repositorys.SiteRepository;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -20,7 +20,8 @@ public class SnippetServiceImpl implements SnippetService{
     public String getSnippet(String query, SearchPageIndex searchPageIndex) throws IOException {
         String[] queryArray = query.split("\\s");
         Map<Integer, String> queryLemmaMap = new HashMap<>();
-        String[] contentArray = searchPageIndex.getPage().getContent().split("\\s");
+        Document doc = Jsoup.parse(searchPageIndex.getPage().getContent());
+        String[] contentArray = doc.text().split("\\s");
         Map<Integer, String> contentLemmaMap = new HashMap<>();
         Map<Integer, String> contentStringMap = new HashMap<>();
         for (int i = 0; i < queryArray.length; i++) {

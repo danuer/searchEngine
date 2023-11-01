@@ -1,7 +1,6 @@
 package searchengine.services;
 
-import lombok.Data;
-import lombok.Getter;
+import searchengine.model.SiteEntity;
 import searchengine.model.repositorys.SiteRepository;
 import searchengine.model.StatusList;
 
@@ -26,19 +25,19 @@ public class StatusSaver extends Thread {
         Thread.currentThread().setName("StatusSaverThread");
         linkTreeSet = new TreeSet<>();
         for (Parser parser : parserList) {
-            searchengine.model.Site modelSite = siteRepository.findSiteByUrl(parser.getRootUrl());
+            SiteEntity modelSiteEntity = siteRepository.findSiteByUrl(parser.getRootUrl());
             try {
                 linkTreeSet.addAll(fjp.invoke(parser));
             } catch (Exception ex) {
                 ex.printStackTrace();
-                modelSite.setStatus(StatusList.FAILED);
-                modelSite.setStatusTime(System.currentTimeMillis());
-                modelSite.setLastError("Ошибка индексации");
+                modelSiteEntity.setStatus(StatusList.FAILED);
+                modelSiteEntity.setStatusTime(System.currentTimeMillis());
+                modelSiteEntity.setLastError("Ошибка индексации");
                 return;
             }
-            modelSite.setStatus(StatusList.INDEXED);
-            modelSite.setStatusTime(System.currentTimeMillis());
-            siteRepository.save(modelSite);
+            modelSiteEntity.setStatus(StatusList.INDEXED);
+            modelSiteEntity.setStatusTime(System.currentTimeMillis());
+            siteRepository.save(modelSiteEntity);
         }
     }
 }

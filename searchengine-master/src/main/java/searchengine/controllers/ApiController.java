@@ -33,7 +33,7 @@ public class ApiController {
     }
 
     @GetMapping("/startIndexing")
-    public ResponseEntity<GetResponse> startIndexing() throws IOException, InterruptedException {
+    public ResponseEntity<GetResponse> startIndexing() {
         return ResponseEntity.ok(indexingService.startIndexing());
     }
 
@@ -42,9 +42,9 @@ public class ApiController {
         return ResponseEntity.ok(indexingService.stopIndexing());
     }
 
-    @PostMapping("/{indexPage}")
-    public ResponseEntity<PostResponse> addPage(@PathVariable String indexPage) throws IOException {
-        return ResponseEntity.ok(indexingService.indexingPage(indexPage));
+    @PostMapping("/indexPage")
+    public ResponseEntity<PostResponse> addPage(@RequestParam("url") String url) throws IOException {
+        return ResponseEntity.ok(indexingService.indexingPage(url));
     }
 
     @GetMapping("/{search}")

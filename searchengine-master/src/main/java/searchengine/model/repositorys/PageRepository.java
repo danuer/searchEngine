@@ -4,7 +4,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
 import searchengine.model.Page;
-import searchengine.model.Site;
+import searchengine.model.SiteEntity;
 
 import java.util.List;
 import java.util.Optional;
@@ -12,11 +12,11 @@ import java.util.Optional;
 @Repository
 @Transactional
 public interface PageRepository extends CrudRepository<Page, Integer> {
-    List<Integer> findAllByPathAndSite(String path, Site site);
-    List<Page> findAllBySite(Site site);
+    List<Integer> findAllByPathAndSiteEntity(String path, SiteEntity siteEntity);
+    List<Page> findAllBySiteEntity(SiteEntity siteEntity);
     Optional<Page> findByPath(String path);
 
 
-    void deleteAllBySite(Site site);
+    void deleteAllBySiteEntity(SiteEntity siteEntity);
     void deleteAllById(Integer id);
 }

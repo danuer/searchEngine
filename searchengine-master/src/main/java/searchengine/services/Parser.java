@@ -111,8 +111,9 @@ public class Parser extends RecursiveTask<Set<String>> {
             Thread.sleep(500);
             doc = connect(url).get();
             Page savedPage = savePage(doc, url, rootUrl);
-            pageIndexerService.pageIndexer(url, rootUrl, savedPage);
-
+            if (savedPage.getCode() == 200) {
+                pageIndexerService.pageIndexer(url, rootUrl, savedPage);
+            }
             Elements links = doc.select("a");
             links.forEach(element -> {
                 String link = element.attr("abs:href");
@@ -165,19 +166,19 @@ public class Parser extends RecursiveTask<Set<String>> {
             } else {
                 page.setPath(url.substring(matcher.end()));
             }
-            page.setSite(siteRepository.findSiteByUrl(rootUrl));
-            page.setContent(doc.text());
+            page.setSiteEntity(siteRepository.findSiteByUrl(rootUrl));
+            page.setContent(doc.html());
             savedPage = pageRepository.save(page);
-            Site site = savedPage.getSite();
-            site.setStatusTime(System.currentTimeMillis());
-            siteRepository.save(site);
+            SiteEntity siteEntity = savedPage.getSiteEntity();
+            siteEntity.setStatusTime(System.currentTimeMillis());
+            siteRepository.save(siteEntity);
         }
         return savedPage;
     }
     private void checkPage(String url, String rootUrl) {
         String fullUrl = "";
         if (!url.equals(rootUrl)) {
-            fullUrl.concat(rootUrl).concat(url);
+            fullUrl = fullUrl.concat(rootUrl).concat(url);
         }
         Optional<Page> checkPageOpt = pageRepository.findByPath(fullUrl);
         if (checkPageOpt.isEmpty()) {

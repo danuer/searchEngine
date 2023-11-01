@@ -3,15 +3,11 @@ package searchengine.services;
 import lombok.RequiredArgsConstructor;
 import org.jsoup.nodes.Document;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import searchengine.config.Site;
 import searchengine.config.SitesList;
 import searchengine.dto.response.GetResponse;
 import searchengine.dto.response.PostResponse;
-import searchengine.dto.response.SearchResponse;
-import searchengine.dto.response.SiteData;
 import searchengine.model.*;
 import searchengine.model.repositorys.IndexRepository;
 import searchengine.model.repositorys.LemmaRepository;
@@ -75,26 +71,26 @@ public class IndexingServiceImpl implements IndexingService {
     }
 
     private void cleanSiteRepository(String name) {
-        Optional<searchengine.model.Site> siteId = siteRepository.findSiteByName(name);
+        Optional<SiteEntity> siteId = siteRepository.findSiteByName(name);
         siteId.ifPresent(site -> siteRepository.deleteAllById(site.getId()));
     }
 
-    private searchengine.model.Site saveNewSite(String name, String url) {
-        searchengine.model.Site modelSite = new searchengine.model.Site();
-        modelSite.setName(name);
-        modelSite.setUrl(url);
-        modelSite.setStatus(StatusList.INDEXING);
-        modelSite.setStatusTime(System.currentTimeMillis());
-        searchengine.model.Site savedRootSite = siteRepository.save(modelSite);
-        System.out.println(savedRootSite.getId());
-        return savedRootSite;
+    private SiteEntity saveNewSite(String name, String url) {
+        SiteEntity modelSiteEntity = new SiteEntity();
+        modelSiteEntity.setName(name);
+        modelSiteEntity.setUrl(url);
+        modelSiteEntity.setStatus(StatusList.INDEXING);
+        modelSiteEntity.setStatusTime(System.currentTimeMillis());
+        SiteEntity savedRootSiteEntity = siteRepository.save(modelSiteEntity);
+        System.out.println(savedRootSiteEntity.getId());
+        return savedRootSiteEntity;
     }
 
-    private void writeErrToRepo(searchengine.model.Site modelSite) {
-        modelSite.setStatus(StatusList.FAILED);
-        modelSite.setStatusTime(System.currentTimeMillis());
-        modelSite.setLastError("Ошибка индексации");
-        siteRepository.save(modelSite);
+    private void writeErrToRepo(SiteEntity modelSiteEntity) {
+        modelSiteEntity.setStatus(StatusList.FAILED);
+        modelSiteEntity.setStatusTime(System.currentTimeMillis());
+        modelSiteEntity.setLastError("Ошибка индексации");
+        siteRepository.save(modelSiteEntity);
     }
 
     @Override
@@ -107,7 +103,7 @@ public class IndexingServiceImpl implements IndexingService {
                 fjp.shutdownNow();
                 for (Site site : sitesList) {
                     String name = site.getName();
-                    Optional<searchengine.model.Site> editSiteOpt = siteRepository.findSiteByName(name);
+                    Optional<SiteEntity> editSiteOpt = siteRepository.findSiteByName(name);
                     editSiteOpt.ifPresent(site1 -> {
                         if (!site1.getStatus().equals(StatusList.INDEXED)) {
                             site1.setStatus(StatusList.FAILED);
@@ -140,13 +136,15 @@ public class IndexingServiceImpl implements IndexingService {
         String regex = "https?\\:\\/\\/[^\\/]+";
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(url);
+        System.out.println(url);
         if(matcher.find()) {
             String rootUrl = matcher.group(0);
+            System.out.println(rootUrl);
             for (Site site : sitesList) {
                 if (rootUrl.equals(site.getUrl())) {
-                    Optional<searchengine.model.Site> modelSiteOpt = siteRepository.findSiteByName(site.getName());
+                    Optional<SiteEntity> modelSiteOpt = siteRepository.findSiteByName(site.getName());
                     if (modelSiteOpt.isEmpty()) {
-                        searchengine.model.Site modelSite = saveNewSite(site.getName(), site.getUrl());
+                        SiteEntity modelSiteEntity = saveNewSite(site.getName(), site.getUrl());
                     }
                     Parser parser = new Parser(pageIndexerService, url, siteRepository, pageRepository, lemmaRepository, indexRepository);
                     Document doc = connect(url).get();

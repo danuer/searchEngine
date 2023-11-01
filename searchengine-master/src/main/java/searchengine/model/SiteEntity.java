@@ -3,14 +3,11 @@ package searchengine.model;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
-import java.util.Date;
-
 @Entity(name = "site")
 @Getter
 @Setter
 @RequiredArgsConstructor
-public class Site {
+public class SiteEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;

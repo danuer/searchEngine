@@ -9,6 +9,7 @@ import searchengine.dto.statistics.DetailedStatisticsItem;
 import searchengine.dto.statistics.StatisticsData;
 import searchengine.dto.statistics.StatisticsResponse;
 import searchengine.dto.statistics.TotalStatistics;
+import searchengine.model.SiteEntity;
 import searchengine.model.repositorys.IndexRepository;
 import searchengine.model.repositorys.LemmaRepository;
 import searchengine.model.repositorys.PageRepository;
@@ -17,23 +18,18 @@ import searchengine.model.repositorys.SiteRepository;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.Random;
 
 @Service
 @RequiredArgsConstructor
 public class StatisticsServiceImpl implements StatisticsService {
 
     @Autowired
-    private final IndexingService indexingService;
-    @Autowired
     private final SiteRepository siteRepository;
     @Autowired
     private final PageRepository pageRepository;
     @Autowired
     private final LemmaRepository lemmaRepository;
-    @Autowired
-    private final IndexRepository indexRepository;
-//    private final Random random = new Random();
+    //    private final Random random = new Random();
     private final SitesList sites;
 
     @Override
@@ -45,17 +41,16 @@ public class StatisticsServiceImpl implements StatisticsService {
 
         List<DetailedStatisticsItem> detailed = new ArrayList<>();
         List<Site> sitesList = sites.getSites();
-        for(int i = 0; i < sitesList.size(); i++) {
-            Site site = sitesList.get(i);
+        for (Site site : sitesList) {
             DetailedStatisticsItem item = new DetailedStatisticsItem();
             item.setName(site.getName());
             item.setUrl(site.getUrl());
-            Optional<searchengine.model.Site> modelSiteOpt = siteRepository.findSiteByName(site.getName());
+            Optional<SiteEntity> modelSiteOpt = siteRepository.findSiteByName(site.getName());
             if (modelSiteOpt.isEmpty()) {
                 continue;
             }
-            int pages = pageRepository.findAllBySite(modelSiteOpt.get()).size();
-            int lemmas = lemmaRepository.findAllBySite(modelSiteOpt.get()).size();
+            int pages = pageRepository.findAllBySiteEntity(modelSiteOpt.get()).size();
+            int lemmas = lemmaRepository.findAllBySiteEntity(modelSiteOpt.get()).size();
             item.setPages(pages);
             item.setLemmas(lemmas);
             item.setStatus(modelSiteOpt.get().getStatus().toString());

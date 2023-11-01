@@ -19,7 +19,7 @@ public class Page {
     @JoinColumn(name = "site_id", nullable = false)
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
-    private Site site;
+    private SiteEntity siteEntity;
 
     @Column(columnDefinition = "VARCHAR(512)", nullable = false)
     private String path;

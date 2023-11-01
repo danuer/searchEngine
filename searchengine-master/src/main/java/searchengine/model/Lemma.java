@@ -21,7 +21,7 @@ public class Lemma {
     @JoinColumn(name = "site_id", nullable = false)
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
-    private Site site;
+    private SiteEntity siteEntity;
 
     @Column(columnDefinition = "VARCHAR(255)", nullable = false)
     private String lemma;

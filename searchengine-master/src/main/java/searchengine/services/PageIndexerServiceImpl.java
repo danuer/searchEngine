@@ -1,6 +1,5 @@
 package searchengine.services;
 
-import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.jsoup.Jsoup;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,10 +21,6 @@ public class PageIndexerServiceImpl implements PageIndexerService {
 //    private String url;
 //    private String rootUrl;
     @Autowired
-    private final SiteRepository siteRepository;
-    @Autowired
-    private final PageRepository pageRepository;
-    @Autowired
     private final LemmaRepository lemmaRepository;
     @Autowired
     private IndexRepository indexRepository;
@@ -41,7 +36,7 @@ public class PageIndexerServiceImpl implements PageIndexerService {
             Map<String, Integer> lemmas = lemmaFinderService.collectLemmas(text);
             if (!lemmas.isEmpty()) {
                 for (Map.Entry<String, Integer> entry : lemmas.entrySet()) {
-                    Lemma lemmaEntity = lemmaRepository.searchByLemmaAndSite(entry.getKey(), page.getSite());
+                    Lemma lemmaEntity = lemmaRepository.searchByLemmaAndSiteEntity(entry.getKey(), page.getSiteEntity());
                     if (lemmaEntity != null) {
                         int lemmaFrequency = lemmaEntity.getFrequency() + 1;
                         lemmaEntity.setFrequency(lemmaFrequency);
@@ -49,7 +44,7 @@ public class PageIndexerServiceImpl implements PageIndexerService {
                         lemmaEntity = new Lemma();
                         lemmaEntity.setLemma(entry.getKey());
                         lemmaEntity.setFrequency(1);
-                        lemmaEntity.setSite(page.getSite());
+                        lemmaEntity.setSiteEntity(page.getSiteEntity());
                     }
 //                    lemmaListForSave.add(lemmaEntity);
 
