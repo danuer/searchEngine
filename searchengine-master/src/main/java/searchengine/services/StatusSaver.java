@@ -9,21 +9,23 @@ import java.util.TreeSet;
 import java.util.concurrent.ForkJoinPool;
 
 public class StatusSaver extends Thread {
-    public StatusSaver(ForkJoinPool fjp, List<Parser> parserList, SiteRepository siteRepository) {
+
+    private final List<Parser> parserList;
+    private final SiteRepository siteRepository;
+    private final ForkJoinPool fjp;
+    private final PageIndexerService pageIndexerService;
+
+    public StatusSaver(PageIndexerService pageIndexerService, ForkJoinPool fjp, List<Parser> parserList, SiteRepository siteRepository) {
         this.parserList = parserList;
         this.siteRepository = siteRepository;
         this.fjp = fjp;
+        this.pageIndexerService = pageIndexerService;
     }
-
-    private List<Parser> parserList;
-    private SiteRepository siteRepository;
-    private TreeSet<String> linkTreeSet;
-    private ForkJoinPool fjp;
 
     @Override
     public void run() {
         Thread.currentThread().setName("StatusSaverThread");
-        linkTreeSet = new TreeSet<>();
+        TreeSet<String> linkTreeSet = new TreeSet<>();
         for (Parser parser : parserList) {
             SiteEntity modelSiteEntity = siteRepository.findSiteByUrl(parser.getRootUrl());
             try {
@@ -35,9 +37,12 @@ public class StatusSaver extends Thread {
                 modelSiteEntity.setLastError("Ошибка индексации");
                 return;
             }
-            modelSiteEntity.setStatus(StatusList.INDEXED);
-            modelSiteEntity.setStatusTime(System.currentTimeMillis());
-            siteRepository.save(modelSiteEntity);
+            boolean result = pageIndexerService.pageIndexer();
+            if (result) {
+                modelSiteEntity.setStatus(StatusList.INDEXED);
+                modelSiteEntity.setStatusTime(System.currentTimeMillis());
+                siteRepository.save(modelSiteEntity);
+            }
         }
     }
 }

@@ -20,21 +20,22 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static searchengine.services.IndexingServiceImpl.isInterrupted;
+import static searchengine.services.PageIndexerServiceImpl.pageMapForIndexer;
 
 @Getter
 @Setter
 public class Parser extends RecursiveTask<Set<String>> {
 
     private final PageIndexerService pageIndexerService;
-    private SiteRepository siteRepository;
-    private PageRepository pageRepository;
-    private LemmaRepository lemmaRepository;
-    private IndexRepository indexRepository;
-    private ConcurrentSkipListSet<String> linkList;
+    private final SiteRepository siteRepository;
+    private final PageRepository pageRepository;
+    private final LemmaRepository lemmaRepository;
+    private final IndexRepository indexRepository;
+    private final ConcurrentSkipListSet<String> linkList;
     private Set<String> childLinkList;
     private final String url;
     private final String rootUrl;
-    Document doc;
+    private Document doc;
 
     public Parser(PageIndexerService pageIndexerService, String url,
                   SiteRepository siteRepository,
@@ -112,7 +113,8 @@ public class Parser extends RecursiveTask<Set<String>> {
             doc = connect(url).get();
             Page savedPage = savePage(doc, url, rootUrl);
             if (savedPage.getCode() == 200) {
-                pageIndexerService.pageIndexer(url, rootUrl, savedPage);
+                pageMapForIndexer.put(url, savedPage);
+//                pageIndexerService.pageIndexer(url, rootUrl, savedPage);
             }
             Elements links = doc.select("a");
             links.forEach(element -> {
