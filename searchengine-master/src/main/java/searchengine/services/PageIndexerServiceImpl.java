@@ -53,44 +53,36 @@ public class PageIndexerServiceImpl implements PageIndexerService {
             Optional<Page> pageOpt = pageRepository.findById(pageId);
             pageOpt.ifPresent(page1 -> page = pageOpt.get());
             rootUrl = getRootUrl(url);
-                try {
-                    String text = Jsoup.parse(page.getContent()).text();
-                    Map<String, Integer> lemmas = lemmaFinderService.collectLemmas(text);
-                    if (!lemmas.isEmpty()) {
-                        for (Map.Entry<String, Integer> entry : lemmas.entrySet()) {
-                            Lemma lemmaEntity = lemmaRepository.searchByLemmaAndSiteEntity(entry.getKey(), page.getSiteEntity());
-                            if (lemmaEntity != null) {
-                                int lemmaFrequency = lemmaEntity.getFrequency() + 1;
-                                lemmaEntity.setFrequency(lemmaFrequency);
-                            } else {
-                                lemmaEntity = new Lemma();
-                                lemmaEntity.setLemma(entry.getKey());
-                                lemmaEntity.setFrequency(1);
-                                lemmaEntity.setSiteEntity(page.getSiteEntity());
-                            }
-//                    lemmaListForSave.add(lemmaEntity);
-
-                            Lemma savedLemma;
-                            synchronized (lemmaRepository) {
-                                savedLemma = lemmaRepository.save(lemmaEntity);
-                            }
-                            Index indexEntity = new Index();
-                            indexEntity.setPage(page);
-                            indexEntity.setLemma(savedLemma);
-                            indexEntity.setRank(entry.getValue());
-//                    indexListForSave.add(indexEntity);
-//                    synchronized (indexRepository) {
-                            Index savedIndex = indexRepository.save(indexEntity);
-//                    }
+            try {
+                String text = Jsoup.parse(page.getContent()).text();
+                Map<String, Integer> lemmas = lemmaFinderService.collectLemmas(text);
+                if (!lemmas.isEmpty()) {
+                    for (Map.Entry<String, Integer> entry : lemmas.entrySet()) {
+                        Lemma lemmaEntity = lemmaRepository.searchByLemmaAndSiteEntity(entry.getKey(), page.getSiteEntity());
+                        if (lemmaEntity != null) {
+                            int lemmaFrequency = lemmaEntity.getFrequency() + 1;
+                            lemmaEntity.setFrequency(lemmaFrequency);
+                        } else {
+                            lemmaEntity = new Lemma();
+                            lemmaEntity.setLemma(entry.getKey());
+                            lemmaEntity.setFrequency(1);
+                            lemmaEntity.setSiteEntity(page.getSiteEntity());
                         }
-//                synchronized (lemmaRepository) {
-//                    Iterable<Lemma> savedLemmas = lemmaRepository.saveAll(lemmaListForSave);
-//                }
-//                indexRepository.saveAll(indexListForSave);
+
+                        Lemma savedLemma;
+                        synchronized (lemmaRepository) {
+                            savedLemma = lemmaRepository.save(lemmaEntity);
+                        }
+                        Index indexEntity = new Index();
+                        indexEntity.setPage(page);
+                        indexEntity.setLemma(savedLemma);
+                        indexEntity.setRank(entry.getValue());
+                        Index savedIndex = indexRepository.save(indexEntity);
                     }
-                } catch (Exception e) {
-                    e.printStackTrace();
                 }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
         return true;
     }

@@ -49,8 +49,10 @@ public class StatisticsServiceImpl implements StatisticsService {
             if (modelSiteOpt.isEmpty()) {
                 continue;
             }
-            int pages = pageRepository.findAllBySiteEntity(modelSiteOpt.get()).size();
-            int lemmas = lemmaRepository.findAllBySiteEntity(modelSiteOpt.get()).size();
+//            int pages = pageRepository.findAllBySiteEntity(modelSiteOpt.get()).size();
+            int pages = pageRepository.countAllBySiteEntity(modelSiteOpt.get());
+//            int lemmas = lemmaRepository.findAllBySiteEntity(modelSiteOpt.get()).size();
+            int lemmas = lemmaRepository.countAllBySiteEntity(modelSiteOpt.get());
             item.setPages(pages);
             item.setLemmas(lemmas);
             item.setStatus(modelSiteOpt.get().getStatus().toString());

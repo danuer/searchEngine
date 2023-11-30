@@ -19,5 +19,6 @@ public interface LemmaRepository extends CrudRepository<Lemma, Integer> {
     Lemma searchByLemmaAndSiteEntity(String lemma, SiteEntity siteEntity);
     Set<Lemma> findAllByLemma(String lemma);
     List<Lemma> findAllBySiteEntity(SiteEntity siteEntity);
+    Integer countAllBySiteEntity(SiteEntity siteEntity);
 }
 

@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.TreeSet;
 import java.util.concurrent.ForkJoinPool;
 
+import static searchengine.services.PageIndexerServiceImpl.pageMapForIndexer;
+
 public class StatusSaver extends Thread {
 
     private final List<Parser> parserList;
@@ -42,6 +44,7 @@ public class StatusSaver extends Thread {
                 modelSiteEntity.setStatus(StatusList.INDEXED);
                 modelSiteEntity.setStatusTime(System.currentTimeMillis());
                 siteRepository.save(modelSiteEntity);
+                pageMapForIndexer.clear();
             }
         }
     }

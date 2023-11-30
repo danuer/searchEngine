@@ -14,6 +14,7 @@ import java.util.Optional;
 public interface PageRepository extends CrudRepository<Page, Integer> {
     List<Integer> findAllByPathAndSiteEntity(String path, SiteEntity siteEntity);
     List<Page> findAllBySiteEntity(SiteEntity siteEntity);
+    Integer countAllBySiteEntity(SiteEntity siteEntity);
     Optional<Page> findByPath(String path);
 
 
