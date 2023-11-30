@@ -161,7 +161,7 @@ public class IndexingServiceImpl implements IndexingService {
                     Optional<Page> pageOpt = pageRepository.findByPath(entityUrl);
                     pageOpt.ifPresent(page -> pageRepository.deleteAllById(page.getId()));
                     Page page = parser.savePage(doc, url, rootUrl);
-                    pageMapForIndexer.put(url, page);
+                    pageMapForIndexer.put(url, page.getId());
                     pageIndexerService.pageIndexer();
                     postResponse.setResult(true);
                     postResponse.setError("");

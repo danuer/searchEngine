@@ -15,6 +15,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ForkJoinPool;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -26,15 +27,18 @@ public class PageIndexerServiceImpl implements PageIndexerService {
     private final LemmaFinderService lemmaFinderService;
     private String url;
     private String rootUrl;
+    private int pageId;
     private Page page;
     @Autowired
     private final LemmaRepository lemmaRepository;
     @Autowired
     private IndexRepository indexRepository;
-    public static Map<String, Page> pageMapForIndexer;
+    @Autowired
+    private PageRepository pageRepository;
+    public static Map<String, Integer> pageMapForIndexer;
 
     @Bean
-    public Map<String, Page> getMap() {
+    public Map<String, Integer> getMap() {
         pageMapForIndexer = new ConcurrentSkipListMap<>();
         return pageMapForIndexer;
     }
@@ -43,9 +47,11 @@ public class PageIndexerServiceImpl implements PageIndexerService {
     @Override
     public boolean pageIndexer() {
         Thread.currentThread().setName("PageIndexerThread");
-        for (Map.Entry<String, Page> pageEntry : pageMapForIndexer.entrySet()) {
+        for (Map.Entry<String, Integer> pageEntry : pageMapForIndexer.entrySet()) {
             url = pageEntry.getKey();
-            page = pageEntry.getValue();
+            pageId = pageEntry.getValue();
+            Optional<Page> pageOpt = pageRepository.findById(pageId);
+            pageOpt.ifPresent(page1 -> page = pageOpt.get());
             rootUrl = getRootUrl(url);
                 try {
                     String text = Jsoup.parse(page.getContent()).text();

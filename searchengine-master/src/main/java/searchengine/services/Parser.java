@@ -113,7 +113,7 @@ public class Parser extends RecursiveTask<Set<String>> {
             doc = connect(url).get();
             Page savedPage = savePage(doc, url, rootUrl);
             if (savedPage.getCode() == 200) {
-                pageMapForIndexer.put(url, savedPage);
+                pageMapForIndexer.put(url, savedPage.getId());
 //                pageIndexerService.pageIndexer(url, rootUrl, savedPage);
             }
             Elements links = doc.select("a");
