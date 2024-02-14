@@ -2,23 +2,19 @@ package searchengine.services;
 
 import lombok.RequiredArgsConstructor;
 import org.jsoup.Jsoup;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Service;
-import searchengine.model.*;
+import searchengine.model.Index;
+import searchengine.model.Lemma;
+import searchengine.model.Page;
 import searchengine.model.repositorys.IndexRepository;
 import searchengine.model.repositorys.LemmaRepository;
 import searchengine.model.repositorys.PageRepository;
-import searchengine.model.repositorys.SiteRepository;
 
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.concurrent.ForkJoinPool;
-import java.util.function.Consumer;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
@@ -58,7 +54,7 @@ public class PageIndexerServiceImpl implements PageIndexerService {
         return true;
     }
 
-    private void lemmaAndIndexSaver (Map<String, Integer> lemmas) {
+    private void lemmaAndIndexSaver(Map<String, Integer> lemmas) {
         for (Map.Entry<String, Integer> entry : lemmas.entrySet()) {
             Lemma lemmaEntity = lemmaRepository.searchByLemmaAndSiteEntity(entry.getKey(), page.getSiteEntity());
             if (lemmaEntity != null) {
