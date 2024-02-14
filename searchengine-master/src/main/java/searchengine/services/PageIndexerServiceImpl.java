@@ -16,6 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ForkJoinPool;
 import java.util.function.Consumer;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -23,18 +24,11 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class PageIndexerServiceImpl implements PageIndexerService {
 
-    @Autowired
     private final LemmaFinderService lemmaFinderService;
-    private String url;
-    private String rootUrl;
-    private int pageId;
     private Page page;
-    @Autowired
     private final LemmaRepository lemmaRepository;
-    @Autowired
-    private IndexRepository indexRepository;
-    @Autowired
-    private PageRepository pageRepository;
+    private final IndexRepository indexRepository;
+    private final PageRepository pageRepository;
     public static Map<String, Integer> pageMapForIndexer;
 
     @Bean
@@ -43,63 +37,48 @@ public class PageIndexerServiceImpl implements PageIndexerService {
         return pageMapForIndexer;
     }
 
-
     @Override
     public boolean pageIndexer() {
         Thread.currentThread().setName("PageIndexerThread");
+        Logger.getLogger(PageIndexerService.class.getName()).info("Lemmatization was started");
         for (Map.Entry<String, Integer> pageEntry : pageMapForIndexer.entrySet()) {
-            url = pageEntry.getKey();
-            pageId = pageEntry.getValue();
+            int pageId = pageEntry.getValue();
             Optional<Page> pageOpt = pageRepository.findById(pageId);
             pageOpt.ifPresent(page1 -> page = pageOpt.get());
-            rootUrl = getRootUrl(url);
             try {
                 String text = Jsoup.parse(page.getContent()).text();
                 Map<String, Integer> lemmas = lemmaFinderService.collectLemmas(text);
                 if (!lemmas.isEmpty()) {
-                    for (Map.Entry<String, Integer> entry : lemmas.entrySet()) {
-                        Lemma lemmaEntity = lemmaRepository.searchByLemmaAndSiteEntity(entry.getKey(), page.getSiteEntity());
-                        if (lemmaEntity != null) {
-                            int lemmaFrequency = lemmaEntity.getFrequency() + 1;
-                            lemmaEntity.setFrequency(lemmaFrequency);
-                        } else {
-                            lemmaEntity = new Lemma();
-                            lemmaEntity.setLemma(entry.getKey());
-                            lemmaEntity.setFrequency(1);
-                            lemmaEntity.setSiteEntity(page.getSiteEntity());
-                        }
-
-                        Lemma savedLemma;
-                        synchronized (lemmaRepository) {
-                            savedLemma = lemmaRepository.save(lemmaEntity);
-                        }
-                        Index indexEntity = new Index();
-                        indexEntity.setPage(page);
-                        indexEntity.setLemma(savedLemma);
-                        indexEntity.setRank(entry.getValue());
-                        Index savedIndex = indexRepository.save(indexEntity);
-                    }
+                    lemmaAndIndexSaver(lemmas);
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                Logger.getLogger(PageIndexerService.class.getName()).info("Lemmatization was interrupted due to: " + e.getMessage());
             }
         }
         return true;
     }
 
-    private String getRootUrl(String url) {
-        String rootUrl = "";
-        if (url.endsWith("/")) {
-            url = url.substring(0, url.length() - 1);
+    private void lemmaAndIndexSaver (Map<String, Integer> lemmas) {
+        for (Map.Entry<String, Integer> entry : lemmas.entrySet()) {
+            Lemma lemmaEntity = lemmaRepository.searchByLemmaAndSiteEntity(entry.getKey(), page.getSiteEntity());
+            if (lemmaEntity != null) {
+                int lemmaFrequency = lemmaEntity.getFrequency() + 1;
+                lemmaEntity.setFrequency(lemmaFrequency);
+            } else {
+                lemmaEntity = new Lemma();
+                lemmaEntity.setLemma(entry.getKey());
+                lemmaEntity.setFrequency(1);
+                lemmaEntity.setSiteEntity(page.getSiteEntity());
+            }
+            Lemma savedLemma;
+            synchronized (lemmaRepository) {
+                savedLemma = lemmaRepository.save(lemmaEntity);
+            }
+            Index indexEntity = new Index();
+            indexEntity.setPage(page);
+            indexEntity.setLemma(savedLemma);
+            indexEntity.setRank(entry.getValue());
+            Index savedIndex = indexRepository.save(indexEntity);
         }
-        String regex = "https?\\:\\/\\/[^\\/]+";
-        Pattern pattern = Pattern.compile(regex);
-        Matcher matcher = pattern.matcher(url);
-//        System.out.println(url);
-        if (matcher.find()) {
-            rootUrl = matcher.group(0);
-//            System.out.println(rootUrl);
-        }
-        return rootUrl;
     }
 }

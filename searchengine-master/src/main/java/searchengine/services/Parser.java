@@ -6,6 +6,7 @@ import org.jsoup.Connection;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
+
 import searchengine.model.*;
 import searchengine.model.repositorys.IndexRepository;
 import searchengine.model.repositorys.LemmaRepository;
@@ -16,6 +17,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.RecursiveTask;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -75,10 +77,8 @@ public class Parser extends RecursiveTask<Set<String>> {
     protected Set<String> compute() {
         childLinkList = new HashSet<>();
         List<Parser> taskList = new ArrayList<>();
-//        checkPage(url, rootUrl);
         parseLinks(url);
         if (!childLinkList.isEmpty() && !isInterrupted) {
-//            System.out.println("найдено " + childLinkList.size());
             childLinkList.forEach(link -> {
                 try {
                     Parser task = new Parser(pageIndexerService, link, siteRepository, pageRepository, linkList, rootUrl, lemmaRepository, indexRepository);
@@ -92,7 +92,6 @@ public class Parser extends RecursiveTask<Set<String>> {
                 linkList.addAll(task.join());
             }
         }
-//        System.out.println("linkList size - " + linkList.size());
         return linkList;
     }
 
@@ -103,55 +102,55 @@ public class Parser extends RecursiveTask<Set<String>> {
                 .userAgent("Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) " +
                         "Gecko/20070725 Firefox/2.0.0.6")
                 .referrer("https://www.google.com")
-                .timeout(5000)
+                .timeout(60000)
                 .followRedirects(false);
     }
 
     private void parseLinks(String url) {
         try {
-            Thread.sleep(500);
+            Thread.sleep(1500);
             doc = connect(url).get();
             Page savedPage = savePage(doc, url, rootUrl);
             if (savedPage.getCode() == 200) {
                 pageMapForIndexer.put(url, savedPage.getId());
-//                pageIndexerService.pageIndexer(url, rootUrl, savedPage);
             }
             Elements links = doc.select("a");
             links.forEach(element -> {
                 String link = element.attr("abs:href");
                 if (isTrueLink(link)) {
-//                    System.out.println(link);
                     linkList.add(link);
                     childLinkList.add(link);
                 }
             });
         } catch (InterruptedException | IOException | IllegalArgumentException e) {
-            e.printStackTrace();
+            Logger.getLogger(Parser.class.getName()).info("Parsing of url: " + url +
+                    " was interrupted due to: " + e.getMessage());
         }
     }
 
     private Boolean isTrueLink(String link) {
-//        String regexUrl = "(?<scheme>https?)://play" +
-////                "(?<subDomain>[a-z0-9-]{1,63}\\.(?:[a-z0-9-]{1,63}\\.)*)?(?<domain>[a-z0-9-]{1,256})" +
-//                rootUrl +
-//                "[.](?<tld>[a-z0-9]+)(?::(?<port>[0-9]{1,5}))?(?<path>/.*/?)?";
-//        Pattern pattern = Pattern.compile(regexUrl);
-//        Matcher matcher = pattern.matcher(link);
-//        while (matcher.find()) {
         if (!linkList.contains(link) &&
                 link.startsWith(rootUrl) &&
                 !link.contains("extlink") &&
                 !link.equals(url) &&
+                link.length() < 500 &&
                 !link.contains(".pdf") &&
                 !link.contains("#") &&
                 !link.contains(".doc") &&
                 !link.contains(".jpg") &&
+                !link.contains(".JPG") &&
                 !link.contains(".png") &&
                 !link.contains(".svg") &&
+                !link.contains(".zip") &&
+                !link.contains(".nc") &&
+                !link.contains(".xls") &&
+                !link.contains(".fig") &&
+                !link.contains(".jpeg") &&
+                !link.contains(".JPEG") &&
+                !link.contains(".jfif") &&
                 !link.contains("?")) {
             return true;
         }
-//        }
         return false;
     }
 
@@ -170,21 +169,16 @@ public class Parser extends RecursiveTask<Set<String>> {
             }
             page.setSiteEntity(siteRepository.findSiteByUrl(rootUrl));
             page.setContent(doc.html());
-            savedPage = pageRepository.save(page);
+            try {
+                savedPage = pageRepository.save(page);
+            } catch (Exception e) {
+                Logger.getLogger(Parser.class.getName()).info("Save of url: " + url +
+                        " was interrupted due to: " + e.getMessage());
+            }
             SiteEntity siteEntity = savedPage.getSiteEntity();
             siteEntity.setStatusTime(System.currentTimeMillis());
             siteRepository.save(siteEntity);
         }
         return savedPage;
-    }
-    private void checkPage(String url, String rootUrl) {
-        String fullUrl = "";
-        if (!url.equals(rootUrl)) {
-            fullUrl = fullUrl.concat(rootUrl).concat(url);
-        }
-        Optional<Page> checkPageOpt = pageRepository.findByPath(fullUrl);
-        if (checkPageOpt.isEmpty()) {
-            parseLinks(fullUrl);
-        }
     }
 }

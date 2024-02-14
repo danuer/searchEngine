@@ -11,11 +11,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Logger;
 
 @Service
 @RequiredArgsConstructor
-public class SnippetServiceImpl implements SnippetService{
+public class SnippetServiceImpl implements SnippetService {
     private final LemmaFinderService lemmaFinderService;
+
     @Override
     public String getSnippet(String query, SearchPageIndex searchPageIndex) throws IOException {
         String[] queryArray = query.split("\\s");
@@ -64,19 +66,25 @@ public class SnippetServiceImpl implements SnippetService{
         }
         for (int i = snipFrom; i <= snipTo; i++) {
             try {
-                if (contentStringMap.get(i).isEmpty()){
+                if (contentStringMap.get(i).isEmpty()) {
                     continue;
                 }
-            if (i % 10 == 0) {
-                snippet = snippet.concat("<br>");
-            }
-            if (snipSet.contains(i)) {
-                snippet = snippet.concat(" ").concat("<b>").concat(contentStringMap.get(i).concat("</b>"));
-            } else {
-                snippet = snippet.concat(" ").concat(contentStringMap.get(i)).concat(" ");
-            }
-            } catch(NullPointerException ne) {
-                ne.printStackTrace();
+                if (i % 10 == 0) {
+                    snippet = snippet.concat("<br>");
+                }
+                if (snipSet.contains(i)) {
+                    snippet = snippet.concat(" ")
+                            .concat("<b>")
+                            .concat(contentStringMap.get(i)
+                                    .concat("</b>"));
+                } else {
+                    snippet = snippet.concat(" ")
+                            .concat(contentStringMap.get(i))
+                            .concat(" ");
+                }
+            } catch (NullPointerException ne) {
+                Logger.getLogger(SnippetService.class.getName()).info(
+                        "ContentStringMap for snippet is null, message: "  + ne.getMessage());
             }
         }
         return snippet;

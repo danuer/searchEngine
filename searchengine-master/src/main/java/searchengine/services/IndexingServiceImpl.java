@@ -2,7 +2,6 @@ package searchengine.services;
 
 import lombok.RequiredArgsConstructor;
 import org.jsoup.nodes.Document;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Service;
 import searchengine.config.Site;
@@ -20,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ForkJoinPool;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -31,16 +31,11 @@ import static searchengine.services.PageIndexerServiceImpl.pageMapForIndexer;
 @RequiredArgsConstructor
 public class IndexingServiceImpl implements IndexingService {
 
-    @Autowired
     private final PageIndexerService pageIndexerService;
     private final SitesList sites;
-    @Autowired
     private final SiteRepository siteRepository;
-    @Autowired
     private final PageRepository pageRepository;
-    @Autowired
     private final LemmaRepository lemmaRepository;
-    @Autowired
     private final IndexRepository indexRepository;
     static volatile boolean isInterrupted;
     private List<Site> sitesList;
@@ -81,7 +76,10 @@ public class IndexingServiceImpl implements IndexingService {
 
     private void cleanSiteRepository(String name) {
         Optional<SiteEntity> siteId = siteRepository.findSiteByName(name);
-        siteId.ifPresent(site -> siteRepository.deleteAllById(site.getId()));
+        siteId.ifPresent(site -> {
+            siteRepository.deleteAllById(site.getId());
+            Logger.getLogger(IndexingService.class.getName()).info("Site " + site.getName() + " was deleted from siteRepository");
+        });
     }
 
     private SiteEntity saveNewSite(String name, String url) {
@@ -91,7 +89,10 @@ public class IndexingServiceImpl implements IndexingService {
         modelSiteEntity.setStatus(StatusList.INDEXING);
         modelSiteEntity.setStatusTime(System.currentTimeMillis());
         SiteEntity savedRootSiteEntity = siteRepository.save(modelSiteEntity);
-        System.out.println(savedRootSiteEntity.getId());
+        Logger.getLogger(IndexingService.class.getName()).info("Site " +
+                savedRootSiteEntity.getName() +
+                " was saved in siteRepository with ID #" +
+                savedRootSiteEntity.getId());
         return savedRootSiteEntity;
     }
 
@@ -119,6 +120,8 @@ public class IndexingServiceImpl implements IndexingService {
                         site1.setStatusTime(System.currentTimeMillis());
                         site1.setLastError("Индексация остановлена пользователем");
                         siteRepository.save(site1);
+                        Logger.getLogger(IndexingService.class.getName()).info("Indexing site " +
+                                site1.getName() + " was stopped by user");
                     }
                 });
 
@@ -148,7 +151,8 @@ public class IndexingServiceImpl implements IndexingService {
         System.out.println(url);
         if (matcher.find()) {
             String rootUrl = matcher.group(0);
-            System.out.println(rootUrl);
+            Logger.getLogger(IndexingService.class.getName()).info("Site " +
+                    url + " was added to indexing");
             for (Site site : sitesList) {
                 if (rootUrl.equals(site.getUrl())) {
                     Optional<SiteEntity> optionalSiteEntity = siteRepository.findSiteByName(site.getName());

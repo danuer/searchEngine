@@ -18,7 +18,8 @@ indexing-settings:
   sites:
     - url: https://playback.ru
       name: PlayBack.Ru
-    - url: https://volochek.life
-      name: volochek.life
-    - url: https://dimonvideo.ru
-      name: dimonvideo.ru
+    - url: https://ipfran.ru
+      name: ipfran.ru
+    - url: https://et-cetera.ru
+      name: et-cetera.ru
+

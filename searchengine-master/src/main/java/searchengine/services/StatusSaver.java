@@ -7,6 +7,7 @@ import searchengine.model.StatusList;
 import java.util.List;
 import java.util.TreeSet;
 import java.util.concurrent.ForkJoinPool;
+import java.util.logging.Logger;
 
 import static searchengine.services.PageIndexerServiceImpl.pageMapForIndexer;
 
@@ -27,13 +28,15 @@ public class StatusSaver extends Thread {
     @Override
     public void run() {
         Thread.currentThread().setName("StatusSaverThread");
+        Logger.getLogger(Thread.currentThread().getName()).info("running ");
         TreeSet<String> linkTreeSet = new TreeSet<>();
         for (Parser parser : parserList) {
             SiteEntity modelSiteEntity = siteRepository.findSiteByUrl(parser.getRootUrl());
             try {
+                Logger.getLogger(StatusSaver.class.getName()).info("StatusSaver start indexing " + parser.getRootUrl());
                 linkTreeSet.addAll(fjp.invoke(parser));
             } catch (Exception ex) {
-                ex.printStackTrace();
+                Logger.getLogger(StatusSaver.class.getName()).info("StatusSaver was interrupted due to exception: " + ex.getMessage());
                 modelSiteEntity.setStatus(StatusList.FAILED);
                 modelSiteEntity.setStatusTime(System.currentTimeMillis());
                 modelSiteEntity.setLastError("Ошибка индексации");
@@ -44,6 +47,7 @@ public class StatusSaver extends Thread {
                 modelSiteEntity.setStatus(StatusList.INDEXED);
                 modelSiteEntity.setStatusTime(System.currentTimeMillis());
                 siteRepository.save(modelSiteEntity);
+                Logger.getLogger(StatusSaver.class.getName()).info("Lematization for site: " + modelSiteEntity.getName() + " was finished");
                 pageMapForIndexer.clear();
             }
         }
