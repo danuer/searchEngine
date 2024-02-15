@@ -1,4 +1,4 @@
-FROM openjdk:20
+FROM openjdk:21
 LABEL authors="serafim"
 WORKDIR /app
 

@@ -17,8 +17,6 @@ public interface LemmaRepository extends CrudRepository<Lemma, Integer> {
     Optional<Lemma> findByLemmaAndSiteEntity(String lemma, SiteEntity siteEntity);
     @Query(value = "SELECT l FROM Lemma l where l.lemma =:lemma and l.siteEntity =:siteEntity")
     Lemma searchByLemmaAndSiteEntity(String lemma, SiteEntity siteEntity);
-    Set<Lemma> findAllByLemma(String lemma);
-    List<Lemma> findAllBySiteEntity(SiteEntity siteEntity);
     Integer countAllBySiteEntity(SiteEntity siteEntity);
 }
 

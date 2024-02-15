@@ -35,8 +35,10 @@ public class SearchServiceImpl implements SearchService {
     @Override
     public SearchResponse search(String query, int offset, int limit, @Nullable String siteUrl) throws IOException {
         SearchResponse searchResponse = new SearchResponse();
+        searchResponse.setResult(false);
         List<Lemma> lemmaList;
         List<Index> indexList;
+        Map<Lemma, Integer> lemmaMapByFreq = new HashMap<>();
         List<Lemma> lemmaSortedList = new ArrayList<>();
         List<Site> sitesList = sites.getSites();
         Set<String> lemmas = lemmaFinderService.getLemmaSet(query);
@@ -45,29 +47,42 @@ public class SearchServiceImpl implements SearchService {
         } else {
             lemmaList = searchAll(sitesList, lemmas);
         }
-        if (!lemmaList.isEmpty()) {
-            Map<Lemma, Integer> lemmaMapByFreq = new HashMap<>();
-            for (Lemma lemma : lemmaList) {
-                if (lemma.getFrequency() <= 500) {
-                    lemmaMapByFreq.put(lemma, lemma.getFrequency());
-                } else {
-                    searchResponse.setError("Слишком большое кол-во страниц");
-                }
-            }
-            if (lemmaMapByFreq.isEmpty()) {
-                searchResponse.setResult(false);
-                return searchResponse;
-            }
-            lemmaMapByFreq.entrySet()
-                    .stream()
-                    .sorted(Map.Entry.comparingByValue(Comparator.naturalOrder()))
-                    .forEach(entry -> lemmaSortedList.add(entry.getKey()));
-            indexList = indexRepository.findAllByLemma(lemmaSortedList.get(0));
-        } else {
-            searchResponse.setResult(false);
+        if (lemmaList.isEmpty()) {
             searchResponse.setError("По данному запросу ничего не найдено");
             return searchResponse;
         }
+
+        lemmaList.stream()
+                .filter(lemma -> lemma.getFrequency() <= 200)
+                .forEach(lemma -> lemmaMapByFreq.put(lemma, lemma.getFrequency()));
+        System.out.println("lemmaMapByFreq print: ");
+        lemmaMapByFreq.forEach((key, value) -> System.out.println(key.getLemma() + " - " + value));
+
+        if (lemmaMapByFreq.isEmpty()) {
+            searchResponse.setError("Слишком большое кол-во страниц, уточните запрос");
+            return searchResponse;
+        }
+        lemmaMapByFreq.entrySet()
+                .stream()
+                .sorted(Map.Entry.comparingByValue(Comparator.naturalOrder()))
+                .forEach(entry -> lemmaSortedList.add(entry.getKey()));
+        System.out.println("lemmaSortedList print: ");
+        lemmaSortedList.forEach(lemma ->
+                System.out.println(lemma.getLemma() + " - " + lemma.getFrequency()));
+
+/* TODO
+*   добавить перебор по всем леммам и формирование итогового списка страниц ; переборы ниже вынести в отдельный метод/методы
+*/
+        indexList = indexRepository.findAllByLemma(lemmaSortedList.get(0));
+
+        lemmaSortedList.forEach(lemma -> {
+            List<Index> indexByLemmaList = indexRepository.findAllByLemma(lemma);
+            System.out.println("indexByLemmaList print: ");
+            indexByLemmaList.forEach(index ->
+                    System.out.println(index.getLemma().getLemma() + " - " + index.getRank()));
+        });
+
+
         List<Integer> pageIdList = new ArrayList<>();
         indexList.forEach(index -> pageIdList.add(index.getPage().getId()));
         Set<Integer> resultPageIdList = new HashSet<>();
@@ -170,7 +185,7 @@ public class SearchServiceImpl implements SearchService {
             lemmaOpt.ifPresent(lemmaList::add);
         }
         for (Lemma lemmaEntity : lemmaList) {
-            System.out.println(lemmaEntity.getLemma() + "-" + lemmaEntity.getFrequency());
+            System.out.println(lemmaEntity.getLemma() + " - " + lemmaEntity.getFrequency() + " - " + lemmaEntity.getSiteEntity().getName());
         }
         return lemmaList;
     }

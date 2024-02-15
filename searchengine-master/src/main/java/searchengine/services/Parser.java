@@ -172,8 +172,9 @@ public class Parser extends RecursiveTask<Set<String>> {
             try {
                 savedPage = pageRepository.save(page);
             } catch (Exception e) {
-                Logger.getLogger(Parser.class.getName()).info("Save of url: " + url +
-                        " was interrupted due to: " + e.getMessage());
+                Logger.getLogger(Parser.class.getName())
+                        .info("Save of url: " + url
+                                + " was interrupted due to: " + e.getMessage());
             }
             SiteEntity siteEntity = savedPage.getSiteEntity();
             siteEntity.setStatusTime(System.currentTimeMillis());

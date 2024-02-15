@@ -74,7 +74,7 @@ public class PageIndexerServiceImpl implements PageIndexerService {
             indexEntity.setPage(page);
             indexEntity.setLemma(savedLemma);
             indexEntity.setRank(entry.getValue());
-            Index savedIndex = indexRepository.save(indexEntity);
+            indexRepository.save(indexEntity);
         }
     }
 }
