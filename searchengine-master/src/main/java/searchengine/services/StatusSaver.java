@@ -5,6 +5,7 @@ import searchengine.model.repositorys.SiteRepository;
 import searchengine.model.StatusList;
 
 import java.util.List;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ForkJoinPool;
 import java.util.logging.Logger;
@@ -29,7 +30,7 @@ public class StatusSaver extends Thread {
     public void run() {
         Thread.currentThread().setName("StatusSaverThread");
         Logger.getLogger(Thread.currentThread().getName()).info("running ");
-        TreeSet<String> linkTreeSet = new TreeSet<>();
+        Set<String> linkTreeSet = new TreeSet<>();
         for (Parser parser : parserList) {
             SiteEntity modelSiteEntity = siteRepository.findSiteByUrl(parser.getRootUrl());
             try {
