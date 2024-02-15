@@ -1,4 +1,4 @@
-FROM ubuntu:latest
+FROM openjdk:20
 LABEL authors="serafim"
 WORKDIR /app
 
